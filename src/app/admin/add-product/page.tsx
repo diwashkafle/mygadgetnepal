@@ -1,100 +1,185 @@
-'use client'
+"use client";
 
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import toast from 'react-hot-toast'
 
-import { useEffect, useState } from 'react'
-import { Plus, Trash } from 'lucide-react'
-import Image from 'next/image'
+
+import { useEffect, useState } from "react";
+import { Plus, Trash } from "lucide-react";
+import Image from "next/image";
+import { Trash2 } from 'lucide-react'
+import { uploadToFirebase } from "@/lib/firebase/uploadToFirebase";
 
 type Category = {
-  id: string,
-  name:string
-}
+  id: string;
+  name: string;
+};
 
 export default function AddProductPage() {
   const [form, setForm] = useState({
-    name: '',
-    categoryId: '',
-    price: '',
-    crossedPrice: '',
-    stock: '',
-    status: 'Draft',
-    description: '',
+    name: "",
+    categoryId: "",
+    price: "",
+    crossedPrice: "",
+    stock: "",
+    status: "Draft",
+    description: "",
     images: [] as File[],
-    specs: [{ key: '', value: '' }],
-    variants: [{ name: '', values: [''] }],
-  })
+    specs: [{ key: "", value: "" }],
+    variants: [{ name: "", values: [""] }],
+  });
 
-  const [categories, setCategories] = useState<Category[]>([])
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    fetch('/api/categories')
-      .then(res => res.json())
-      .then(data => setCategories(data))
-      .catch(err => console.error('Error fetching categories:', err))
-  }, [])
+    fetch("/api/category")
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch((err) => console.error("Error fetching categories:", err));
+  }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return
-    setForm({ ...form, images: Array.from(e.target.files) })
-  }
 
   const handleAddSpec = () => {
-    setForm(prev => ({ ...prev, specs: [...prev.specs, { key: '', value: '' }] }))
-  }
+    setForm((prev) => ({
+      ...prev,
+      specs: [...prev.specs, { key: "", value: "" }],
+    }));
+  };
 
-  const handleSpecChange = (index: number, field: 'key' | 'value', value: string) => {
-    const newSpecs = [...form.specs]
-    newSpecs[index][field] = value
-    setForm(prev => ({ ...prev, specs: newSpecs }))
-  }
+  const handleSpecChange = (
+    index: number,
+    field: "key" | "value",
+    value: string
+  ) => {
+    const newSpecs = [...form.specs];
+    newSpecs[index][field] = value;
+    setForm((prev) => ({ ...prev, specs: newSpecs }));
+  };
 
   const handleRemoveSpec = (index: number) => {
-    const newSpecs = [...form.specs]
-    newSpecs.splice(index, 1)
-    setForm(prev => ({ ...prev, specs: newSpecs }))
-  }
+    const newSpecs = [...form.specs];
+    newSpecs.splice(index, 1);
+    setForm((prev) => ({ ...prev, specs: newSpecs }));
+  };
 
   const handleAddVariant = () => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
-      variants: [...prev.variants, { name: '', values: [''] }],
-    }))
-  }
+      variants: [...prev.variants, { name: "", values: [""] }],
+    }));
+  };
 
   const handleVariantNameChange = (index: number, value: string) => {
-    const newVariants = [...form.variants]
-    newVariants[index].name = value
-    setForm(prev => ({ ...prev, variants: newVariants }))
-  }
+    const newVariants = [...form.variants];
+    newVariants[index].name = value;
+    setForm((prev) => ({ ...prev, variants: newVariants }));
+  };
 
-  const handleVariantValueChange = (vIdx: number, valIdx: number, value: string) => {
-    const newVariants = [...form.variants]
-    newVariants[vIdx].values[valIdx] = value
-    setForm(prev => ({ ...prev, variants: newVariants }))
-  }
+  const handleVariantValueChange = (
+    vIdx: number,
+    valIdx: number,
+    value: string
+  ) => {
+    const newVariants = [...form.variants];
+    newVariants[vIdx].values[valIdx] = value;
+    setForm((prev) => ({ ...prev, variants: newVariants }));
+  };
 
   const handleAddVariantValue = (vIdx: number) => {
-    const newVariants = [...form.variants]
-    newVariants[vIdx].values.push('')
-    setForm(prev => ({ ...prev, variants: newVariants }))
-  }
+    const newVariants = [...form.variants];
+    newVariants[vIdx].values.push("");
+    setForm((prev) => ({ ...prev, variants: newVariants }));
+  };
 
   const handleRemoveVariant = (vIdx: number) => {
-    const newVariants = [...form.variants]
-    newVariants.splice(vIdx, 1)
-    setForm(prev => ({ ...prev, variants: newVariants }))
-  }
+    const newVariants = [...form.variants];
+    newVariants.splice(vIdx, 1);
+    setForm((prev) => ({ ...prev, variants: newVariants }));
+  };
 
   const handleSubmit = async () => {
     // To be implemented: API integration
-    console.log(form)
-    alert('Submitted! (See console for full form data)')
-  }
+    console.log(form);
+    try {
+      if (
+        !form.name ||
+        !form.categoryId ||
+        !form.price ||
+        !form.crossedPrice ||
+        !form.stock ||
+        !form.status ||
+        !form.description ||
+        form.images.length === 0
+      ) {
+        toast.error('Please fill all required fields and upload at least one image.')
+        return
+      }
+  
+      const firebaseImageUrls: string[] = []
+  
+      for (const file of form.images) {
+        if (!file) continue
+        const url = await uploadToFirebase(file)
+        firebaseImageUrls.push(url)
+      }
+  
+      const payload = {
+        name: form.name,
+        categoryId: form.categoryId,
+        price: form.price,
+        crossedPrice: form.crossedPrice,
+        stock: form.stock,
+        status: form.status,
+        description: form.description,
+        images: firebaseImageUrls,
+        specs: form.specs,
+        variants: form.variants,
+      }
+  
+      const res = await fetch('/api/product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+  
+      if (!res.ok) {
+        const errMsg = await res.text()
+        console.error(' API Error:', errMsg)
+        toast.error('Failed to add product.')
+        return
+      }
+  
+      const createdProduct = await res.json()
+      console.log(' Product added:', createdProduct)
+      toast.success('Product added successfully!')
+  
+      setForm({
+        name: '',
+        categoryId: '',
+        price: '',
+        crossedPrice: '',
+        stock: '',
+        status: 'Draft',
+        description: '',
+        images: [null as unknown as File],
+        specs: [{ key: '', value: '' }],
+        variants: [{ name: '', values: [''] }],
+      })
+    } catch (error) {
+      console.error(' Submission failed:', error)
+      toast.error('Something went wrong while submitting the product.')
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto py-10">
@@ -103,20 +188,40 @@ export default function AddProductPage() {
         {/* Left Column */}
         <div className="space-y-4">
           <Label>Product Name</Label>
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
 
           <Label>Price</Label>
-          <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          <Input
+            type="number"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+          />
 
           <Label>Crossed Price</Label>
-          <Input type="number" value={form.crossedPrice} onChange={(e) => setForm({ ...form, crossedPrice: e.target.value })} />
+          <Input
+            type="number"
+            value={form.crossedPrice}
+            onChange={(e) => setForm({ ...form, crossedPrice: e.target.value })}
+          />
 
           <Label>Stock</Label>
-          <Input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+          <Input
+            type="number"
+            value={form.stock}
+            onChange={(e) => setForm({ ...form, stock: e.target.value })}
+          />
 
           <Label>Status</Label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-            <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+          <Select
+            value={form.status}
+            onValueChange={(v) => setForm({ ...form, status: v })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="Published">Published</SelectItem>
               <SelectItem value="Draft">Draft</SelectItem>
@@ -125,10 +230,14 @@ export default function AddProductPage() {
 
           <Label>Category</Label>
           <Select onValueChange={(v) => setForm({ ...form, categoryId: v })}>
-            <SelectTrigger><SelectValue placeholder="Choose Category" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose Category" />
+            </SelectTrigger>
             <SelectContent>
               {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -137,15 +246,81 @@ export default function AddProductPage() {
         {/* Right Column */}
         <div className="space-y-4">
           <Label>Description</Label>
-          <Textarea rows={8} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <Textarea
+            rows={8}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
 
-          <Label>Images</Label>
-          <Input type="file" multiple onChange={handleImageChange} />
-          <div className="flex flex-wrap mt-2 gap-2">
-            {form.images.map((file, i) => (
-              <Image key={i} src={URL.createObjectURL(file)} alt="preview" className="w-24 h-24 object-cover rounded" />
-            ))}
+<Label>Images</Label>
+
+<div className="space-y-4">
+  {form.images.map((file, i) => {
+    const objectUrl = file ? URL.createObjectURL(file) : ''
+    return (
+      <div key={i} className="flex items-center gap-4">
+        {/* File Input */}
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const selectedFile = e.target.files?.[0]
+            if (selectedFile) {
+              const updated = [...form.images]
+              updated[i] = selectedFile
+              setForm({ ...form, images: updated })
+            }
+          }}
+        />
+
+        {/* Image Preview */}
+        {file && (
+          <div className="relative w-24 h-24 rounded overflow-hidden">
+            <Image
+              src={objectUrl}
+              alt={`Image ${i}`}
+              fill
+              className="object-cover rounded"
+              unoptimized
+            />
           </div>
+        )}
+
+        {/* Delete Button */}
+        {form.images.length > 0 && (
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            onClick={() => {
+              const updated = [...form.images]
+              updated.splice(i, 1)
+              setForm({ ...form, images: updated })
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    )
+  })}
+
+  {/* Add More Images */}
+ {form.images.length < 4 && (
+   <Button
+   variant="outline"
+   type="button"
+   className="mt-2"
+   onClick={() => setForm({ ...form, images: [...form.images, null as unknown as File] })}
+ >
+   {
+     form.images.length === 0 ? "+ Add Images" : "+ Add More Images"
+   }
+ </Button>
+ )}
+</div>
+
+          
         </div>
       </div>
 
@@ -157,14 +332,18 @@ export default function AddProductPage() {
             <Input
               placeholder="Key (e.g., Processor)"
               value={spec.key}
-              onChange={(e) => handleSpecChange(index, 'key', e.target.value)}
+              onChange={(e) => handleSpecChange(index, "key", e.target.value)}
             />
             <Input
               placeholder="Value (e.g., i7)"
               value={spec.value}
-              onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
+              onChange={(e) => handleSpecChange(index, "value", e.target.value)}
             />
-            <Button variant="ghost" size="icon" onClick={() => handleRemoveSpec(index)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleRemoveSpec(index)}
+            >
               <Trash className="h-4 w-4" />
             </Button>
           </div>
@@ -189,13 +368,25 @@ export default function AddProductPage() {
                 key={valIdx}
                 placeholder={`Value ${valIdx + 1}`}
                 value={val}
-                onChange={(e) => handleVariantValueChange(vIdx, valIdx, e.target.value)}
+                onChange={(e) =>
+                  handleVariantValueChange(vIdx, valIdx, e.target.value)
+                }
                 className="mt-2"
               />
             ))}
             <div className="flex gap-2 mt-2">
-              <Button variant="outline" onClick={() => handleAddVariantValue(vIdx)}>+ Add Value</Button>
-              <Button variant="destructive" onClick={() => handleRemoveVariant(vIdx)}>Remove Variant</Button>
+              <Button
+                variant="outline"
+                onClick={() => handleAddVariantValue(vIdx)}
+              >
+                + Add Value
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleRemoveVariant(vIdx)}
+              >
+                Remove Variant
+              </Button>
             </div>
           </div>
         ))}
@@ -206,8 +397,10 @@ export default function AddProductPage() {
 
       {/* Submit Button */}
       <div className="mt-10">
-        <Button className="w-full md:w-auto" onClick={handleSubmit}>Submit Product</Button>
+        <Button className="w-full md:w-auto" onClick={handleSubmit}>
+          Submit Product
+        </Button>
       </div>
     </div>
-  )
+  );
 }
