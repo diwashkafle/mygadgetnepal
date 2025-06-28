@@ -11,13 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import toast from 'react-hot-toast'
-
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { Plus, Trash } from "lucide-react";
 import Image from "next/image";
-import { Trash2 } from 'lucide-react'
+import { Trash2 } from "lucide-react";
 import { uploadToFirebase } from "@/lib/firebase/uploadToFirebase";
 
 type Category = {
@@ -40,14 +39,14 @@ export default function AddProductPage() {
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
-
+  const [isSubmited, setIsSubmited] = useState<boolean>(false)
+ 
   useEffect(() => {
     fetch("/api/category")
       .then((res) => res.json())
       .then((data) => setCategories(data))
       .catch((err) => console.error("Error fetching categories:", err));
   }, []);
-
 
   const handleAddSpec = () => {
     setForm((prev) => ({
@@ -110,6 +109,7 @@ export default function AddProductPage() {
   const handleSubmit = async () => {
     // To be implemented: API integration
     console.log(form);
+    setIsSubmited(true)
     try {
       if (
         !form.name ||
@@ -121,18 +121,20 @@ export default function AddProductPage() {
         !form.description ||
         form.images.length === 0
       ) {
-        toast.error('Please fill all required fields and upload at least one image.')
-        return
+        toast.error(
+          "Please fill all required fields and upload at least one image."
+        );
+        return;
       }
-  
-      const firebaseImageUrls: string[] = []
-  
+
+      const firebaseImageUrls: string[] = [];
+
       for (const file of form.images) {
-        if (!file) continue
-        const url = await uploadToFirebase(file)
-        firebaseImageUrls.push(url)
+        if (!file) continue;
+        const url = await uploadToFirebase(file);
+        firebaseImageUrls.push(url);
       }
-  
+
       const payload = {
         name: form.name,
         categoryId: form.categoryId,
@@ -144,42 +146,49 @@ export default function AddProductPage() {
         images: firebaseImageUrls,
         specs: form.specs,
         variants: form.variants,
-      }
-  
-      const res = await fetch('/api/product', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      };
+
+      const res = await fetch("/api/product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      })
-  
+      });
+
       if (!res.ok) {
-        const errMsg = await res.text()
-        console.error(' API Error:', errMsg)
-        toast.error('Failed to add product.')
-        return
+        const errMsg = await res.text();
+        console.error(" API Error:", errMsg);
+        toast.error("Failed to add product.");
+        return;
       }
-  
-      const createdProduct = await res.json()
-      console.log(' Product added:', createdProduct)
-      toast.success('Product added successfully!')
-  
+
+      const createdProduct = await res.json();
+      console.log(" Product added:", createdProduct);
+      toast.success("Product added successfully!");
+      setIsSubmited(false)
+
       setForm({
-        name: '',
-        categoryId: '',
-        price: '',
-        crossedPrice: '',
-        stock: '',
-        status: 'Draft',
-        description: '',
+        name: "",
+        categoryId: "",
+        price: "",
+        crossedPrice: "",
+        stock: "",
+        status: "Draft",
+        description: "",
         images: [null as unknown as File],
-        specs: [{ key: '', value: '' }],
-        variants: [{ name: '', values: [''] }],
-      })
+        specs: [{ key: "", value: "" }],
+        variants: [{ name: "", values: [""] }],
+      });
     } catch (error) {
-      console.error(' Submission failed:', error)
-      toast.error('Something went wrong while submitting the product.')
+      console.error(" Submission failed:", error);
+      toast.error("Something went wrong while submitting the product.");
     }
   };
+
+  const handleRemoveVariantValue = (vIdx: number, valIdx: number) => {
+  const newVariants = [...form.variants]
+  newVariants[vIdx].values.splice(valIdx, 1)
+  setForm(prev => ({ ...prev, variants: newVariants }))
+}
 
   return (
     <div className="max-w-5xl mx-auto py-10">
@@ -252,75 +261,78 @@ export default function AddProductPage() {
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
 
-<Label>Images</Label>
+          <Label>Images</Label>
 
-<div className="space-y-4">
-  {form.images.map((file, i) => {
-    const objectUrl = file ? URL.createObjectURL(file) : ''
-    return (
-      <div key={i} className="flex items-center gap-4">
-        {/* File Input */}
-        <Input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const selectedFile = e.target.files?.[0]
-            if (selectedFile) {
-              const updated = [...form.images]
-              updated[i] = selectedFile
-              setForm({ ...form, images: updated })
-            }
-          }}
-        />
+          <div className="space-y-4">
+            {form.images.map((file, i) => {
+              const objectUrl = file ? URL.createObjectURL(file) : "";
+              return (
+                <div key={i} className="flex items-center gap-4">
+                  {/* File Input */}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0];
+                      if (selectedFile) {
+                        const updated = [...form.images];
+                        updated[i] = selectedFile;
+                        setForm({ ...form, images: updated });
+                      }
+                    }}
+                  />
 
-        {/* Image Preview */}
-        {file && (
-          <div className="relative w-24 h-24 rounded overflow-hidden">
-            <Image
-              src={objectUrl}
-              alt={`Image ${i}`}
-              fill
-              className="object-cover rounded"
-              unoptimized
-            />
+                  {/* Image Preview */}
+                  {file && (
+                    <div className="relative w-24 h-24 rounded overflow-hidden">
+                      <Image
+                        src={objectUrl}
+                        alt={`Image ${i}`}
+                        fill
+                        className="object-cover rounded"
+                        unoptimized
+                      />
+                    </div>
+                  )}
+
+                  {/* Delete Button */}
+                  {form.images.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => {
+                        const updated = [...form.images];
+                        updated.splice(i, 1);
+                        setForm({ ...form, images: updated });
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Add More Images */}
+            {form.images.length < 4 && (
+              <Button
+                variant="outline"
+                type="button"
+                className="mt-2"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    images: [...form.images, null as unknown as File],
+                  })
+                }
+              >
+                {form.images.length === 0
+                  ? "+ Add Images"
+                  : "+ Add More Images"}
+              </Button>
+            )}
           </div>
-        )}
-
-        {/* Delete Button */}
-        {form.images.length > 0 && (
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            onClick={() => {
-              const updated = [...form.images]
-              updated.splice(i, 1)
-              setForm({ ...form, images: updated })
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    )
-  })}
-
-  {/* Add More Images */}
- {form.images.length < 4 && (
-   <Button
-   variant="outline"
-   type="button"
-   className="mt-2"
-   onClick={() => setForm({ ...form, images: [...form.images, null as unknown as File] })}
- >
-   {
-     form.images.length === 0 ? "+ Add Images" : "+ Add More Images"
-   }
- </Button>
- )}
-</div>
-
-          
         </div>
       </div>
 
@@ -364,16 +376,26 @@ export default function AddProductPage() {
               onChange={(e) => handleVariantNameChange(vIdx, e.target.value)}
             />
             {variant.values.map((val, valIdx) => (
-              <Input
-                key={valIdx}
-                placeholder={`Value ${valIdx + 1}`}
-                value={val}
-                onChange={(e) =>
-                  handleVariantValueChange(vIdx, valIdx, e.target.value)
-                }
-                className="mt-2"
-              />
+              <div key={valIdx} className="flex items-center gap-2 mt-2">
+                <Input
+                  placeholder={`Value ${valIdx + 1}`}
+                  value={val}
+                  onChange={(e) =>
+                    handleVariantValueChange(vIdx, valIdx, e.target.value)
+                  }
+                />
+                {variant.values.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveVariantValue(vIdx, valIdx)}
+                  >
+                    <Trash className="w-4 h-4 text-red-500" />
+                  </Button>
+                )}
+              </div>
             ))}
+
             <div className="flex gap-2 mt-2">
               <Button
                 variant="outline"
@@ -397,8 +419,10 @@ export default function AddProductPage() {
 
       {/* Submit Button */}
       <div className="mt-10">
-        <Button className="w-full md:w-auto" onClick={handleSubmit}>
-          Submit Product
+        <Button className="w-full md:w-auto cursor-pointer" onClick={handleSubmit}>
+          {
+            isSubmited ? "Submitting..." : "Submit Product"
+          }
         </Button>
       </div>
     </div>
