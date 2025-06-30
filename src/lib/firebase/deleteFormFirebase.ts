@@ -1,7 +1,7 @@
-import { getStorage, ref, deleteObject } from "firebase/storage";
+import { ref, deleteObject } from "firebase/storage";
+import { storage } from "./firebase";
 
 export async function deleteFromFirebase(filePath: string) {
-  const storage = getStorage();
   const imageRef = ref(storage, filePath);
 
   try {

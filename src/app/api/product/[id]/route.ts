@@ -1,17 +1,42 @@
-import { prisma } from '@/lib/prisma'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { deleteFromFirebase } from "@/lib/firebase/deleteFormFirebase";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest,{params}:{params:{id:string}}) {
+  const productId = params.id
+
   try {
-    await prisma.product.delete({ where: { id: params.id } })
-    return NextResponse.json({ message: 'Deleted' })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+
+    // Extract Firebase paths from image URLs
+    const pathsToDelete = product.images.map((url) => {
+      const matches = url.match(/\/o\/(.*?)\?alt/);
+      if (matches && matches[1]) {
+        return decodeURIComponent(matches[1]); // gives 'products/filename.ext'
+      }
+      return null;
+    }).filter(Boolean) as string[];
+
+    // Delete all images
+    await Promise.all(pathsToDelete.map(deleteFromFirebase));
+
+    // Delete product from DB
+    await prisma.product.delete({
+      where: { id: productId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete product error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-// Already has DELETE
+
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {

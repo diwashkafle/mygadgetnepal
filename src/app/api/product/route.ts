@@ -14,8 +14,9 @@ export async function POST(req: NextRequest) {
       status,
       description,
       images,
-      specs,
+      specifications,
       variants,
+      force,
     } = body
 
     // Basic validation
@@ -33,6 +34,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    if(!force){
+      const existingProduct = await prisma.product.findFirst({
+        where:{
+          name,
+          categoryId,
+        }
+      });
+
+      if(existingProduct){
+        return NextResponse.json({
+          message:"A product with the same name and category already exists.",
+          duplicate:true,
+        },
+        {status:409}
+      )
+      }
+    }
     const product = await prisma.product.create({
       data: {
         name,
@@ -43,7 +61,7 @@ export async function POST(req: NextRequest) {
         stock: parseInt(stock),
         status,
         images,
-        specifications: specs,
+        specifications,
         variants,
       },
     })
