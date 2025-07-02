@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Plus, Trash, Trash2 } from "lucide-react";
+import {Trash2 } from "lucide-react";
 import { uploadToFirebase } from "@/lib/firebase/uploadToFirebase";
 import { useRouter } from "next/navigation";
 import {
@@ -27,11 +27,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import SpecificationEditor from "./SpecificationEditor";
+import VariantEditor from "./VariantEditor";
+import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
 export type Category = {
   id: string;
   name: string;
 };
+
+
 
 export type ProductData = {
   id?: string;
@@ -43,8 +48,8 @@ export type ProductData = {
   status: string;
   description: string;
   images: (string | File)[];
-  specifications: { key: string; value: string }[];
-  variants: { name: string; values: string[] }[];
+  specifications: SpecificationGroup[]
+  variants: VariantGroup[]
 };
 
 export type ProductFormProps = {
@@ -67,9 +72,16 @@ export default function ProductForm({
     status: initialData?.status || "Draft",
     description: initialData?.description || "",
     images: initialData?.images || [],
-    specs: initialData?.specifications || [{ key: "", value: "" }],
-    variants: initialData?.variants || [{ name: "", values: [""] }],
-  });
+    specs: initialData?.specifications || [
+      { title: "", entries: [{ key: "", value: "" }] }
+    ],
+    variants: initialData?.variants || [
+      {
+        name: "",
+        type: "price",
+        types: [{ value: "", price: 0 }],
+      },
+    ],  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
@@ -164,8 +176,8 @@ export default function ProductForm({
             status: "Draft",
             description: "",
             images: [],
-            specs: [{ key: "", value: "" }],
-            variants: [{ name: "", values: [""] }],
+            specs: [],
+            variants: [],
           });
         }
       }
@@ -314,128 +326,100 @@ export default function ProductForm({
         </div>
       </div>
 
-      {/* Specs */}
-      <div className="mt-10">
-        <h3 className="text-xl font-semibold mb-2">Specifications</h3>
-        {form.specs.map((spec, index) => (
-          <div key={index} className="flex gap-2 mb-2">
-            <Input
-              placeholder="Key"
-              value={spec.key}
-              onChange={(e) => {
-                const updated = [...form.specs];
-                updated[index].key = e.target.value;
-                setForm({ ...form, specs: updated });
-              }}
-            />
-            <Input
-              placeholder="Value"
-              value={spec.value}
-              onChange={(e) => {
-                const updated = [...form.specs];
-                updated[index].value = e.target.value;
-                setForm({ ...form, specs: updated });
-              }}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const updated = [...form.specs];
-                updated.splice(index, 1);
-                setForm({ ...form, specs: updated });
-              }}
-            >
-              <Trash className="w-4 h-4" />
-            </Button>
-          </div>
-        ))}
+     {/* Specs */}
+{/* <div className="mt-10">
+  <h3 className="text-xl font-semibold mb-2">Specifications</h3>
+  {form.specs.map((group, gIdx) => (
+    <div key={gIdx} className="border rounded p-4 space-y-2 mb-4">
+      <Input
+        placeholder="Specification Title (e.g., General, Display)"
+        value={group.title}
+        onChange={(e) => {
+          const updated = [...form.specs];
+          updated[gIdx].title = e.target.value;
+          setForm({ ...form, specs: updated });
+        }}
+      />
+      {group.entries?.map((entry, eIdx) => (
+        <div key={eIdx} className="flex gap-2 items-center">
+          <Input
+            placeholder="Key"
+            value={entry.key}
+            onChange={(e) => {
+              const updated = [...form.specs];
+              updated[gIdx].entries[eIdx].key = e.target.value;
+              setForm({ ...form, specs: updated });
+            }}
+          />
+          <Input
+            placeholder="Value"
+            value={entry.value}
+            onChange={(e) => {
+              const updated = [...form.specs];
+              updated[gIdx].entries[eIdx].value = e.target.value;
+              setForm({ ...form, specs: updated });
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              const updated = [...form.specs];
+              updated[gIdx].entries.splice(eIdx, 1);
+              setForm({ ...form, specs: updated });
+            }}
+          >
+            <Trash className="w-4 h-4" />
+          </Button>
+        </div>
+      ))}
+      <div className="flex gap-2">
         <Button
           variant="outline"
-          onClick={() =>
-            setForm({ ...form, specs: [...form.specs, { key: "", value: "" }] })
-          }
+          onClick={() => {
+            const updated = [...form.specs];
+            updated[gIdx].entries.push({ key: "", value: "" });
+            setForm({ ...form, specs: updated });
+          }}
         >
-          <Plus className="h-4 w-4 mr-2" /> Add Spec
+          + Add Entry
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={() => {
+            const updated = [...form.specs];
+            updated.splice(gIdx, 1);
+            setForm({ ...form, specs: updated });
+          }}
+        >
+          Remove Spec Group
         </Button>
       </div>
+    </div>
+  ))}
+  <Button
+    variant="outline"
+    onClick={() =>
+      setForm({
+        ...form,
+        specs: [...form.specs, { title: "", entries: [{ key: "", value: "" }] }],
+      })
+    }
+  >
+    <Plus className="h-4 w-4 mr-2" /> Add Spec Group
+  </Button>
+</div> */}
 
-      {/* Variants */}
-      <div className="mt-10">
-        <h3 className="text-xl font-semibold mb-2">Variants</h3>
-        {form.variants.map((variant, vIdx) => (
-          <div key={vIdx} className="border p-4 rounded space-y-2">
-            <Input
-              placeholder="Variant Name"
-              value={variant.name}
-              onChange={(e) => {
-                const updated = [...form.variants];
-                updated[vIdx].name = e.target.value;
-                setForm({ ...form, variants: updated });
-              }}
-            />
-            {variant.values.map((val, valIdx) => (
-              <div key={valIdx} className="flex gap-2 items-center">
-                <Input
-                  placeholder="Value"
-                  value={val}
-                  onChange={(e) => {
-                    const updated = [...form.variants];
-                    updated[vIdx].values[valIdx] = e.target.value;
-                    setForm({ ...form, variants: updated });
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    const updated = [...form.variants];
-                    updated[vIdx].values.splice(valIdx, 1);
-                    setForm({ ...form, variants: updated });
-                  }}
-                >
-                  <Trash className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const updated = [...form.variants];
-                  updated[vIdx].values.push("");
-                  setForm({ ...form, variants: updated });
-                }}
-              >
-                + Add Value
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  const updated = [...form.variants];
-                  updated.splice(vIdx, 1);
-                  setForm({ ...form, variants: updated });
-                }}
-              >
-                Remove Variant
-              </Button>
-            </div>
-          </div>
-        ))}
-        <Button
-          variant="outline"
-          onClick={() =>
-            setForm({
-              ...form,
-              variants: [...form.variants, { name: "", values: [""] }],
-            })
-          }
-        >
-          <Plus className="h-4 w-4 mr-2" /> Add Variant Group
-        </Button>
-      </div>
+
+<SpecificationEditor
+  specifications={form.specs}
+  onChange={(specs) => setForm({ ...form, specs })}
+/>
+
+<VariantEditor
+  variants={form.variants}
+  onChange={(variants) => setForm({ ...form, variants })}
+/>
 
       {/* Submit */}
       <div className="mt-10">
@@ -492,8 +476,19 @@ export default function ProductForm({
                     status: "Draft",
                     description: "",
                     images: [],
-                    specs: [{ key: "", value: "" }],
-                    variants: [{ name: "", values: [""] }],
+                    specs: [
+                      {
+                        title: "General",
+                        entries: [{ key: "", value: "" }],
+                      },
+                    ],
+                    variants: [
+                      {
+                        name: "",
+                        type:"price",
+                        types: [{ value: "", price:0 }],
+                      },
+                    ],
                   });
                 } catch (err) {
                   toast.error("Error during forced upload.");
