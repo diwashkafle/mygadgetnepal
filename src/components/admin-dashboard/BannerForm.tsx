@@ -138,7 +138,7 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
         />
 
         {form.image && (
-          <div className="mt-4 flex justify-between">
+          <div className="mt-4 flex relative sm:aspect-[24/9] md:aspect-[4/1] justify-between">
             <Image
               src={
                 typeof form.image === 'string'
@@ -146,9 +146,8 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
                   : URL.createObjectURL(form.image)
               }
               alt="Banner preview"
-              width={500}
-              height={250}
-              className="rounded border"
+              fill
+              className="object-cover"
             />
             <button
               onClick={(e) => {
@@ -164,7 +163,7 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
         )}
 
         <p className="text-xs text-muted-foreground mt-1">
-          Recommended: 1600x900 px (16:9 aspect ratio)
+          Recommended: 1200x300 px
         </p>
       </div>
 
