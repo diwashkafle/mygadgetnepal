@@ -37,21 +37,21 @@ model Product {
   variants       Json     // Array of { name: string, values: string[] }
   createdAt     DateTime @default(now())
 }
-
 model Banner {
   id         String   @id @default(uuid())
   title      String
   subtitle   String
-  image   String   // Firebase image URL
-  ctaLink       String   // CTA link (optional)
-  ctaText   String
+  image      String
+  ctaLink    String
+  ctaText    String
   isActive   Boolean  @default(false)
   startDate  DateTime
   endDate    DateTime
-  priority   Int  @default(0)
+  priority   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
 
 
 model Order {

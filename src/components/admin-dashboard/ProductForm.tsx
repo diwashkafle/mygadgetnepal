@@ -326,91 +326,8 @@ export default function ProductForm({
         </div>
       </div>
 
-     {/* Specs */}
-{/* <div className="mt-10">
-  <h3 className="text-xl font-semibold mb-2">Specifications</h3>
-  {form.specs.map((group, gIdx) => (
-    <div key={gIdx} className="border rounded p-4 space-y-2 mb-4">
-      <Input
-        placeholder="Specification Title (e.g., General, Display)"
-        value={group.title}
-        onChange={(e) => {
-          const updated = [...form.specs];
-          updated[gIdx].title = e.target.value;
-          setForm({ ...form, specs: updated });
-        }}
-      />
-      {group.entries?.map((entry, eIdx) => (
-        <div key={eIdx} className="flex gap-2 items-center">
-          <Input
-            placeholder="Key"
-            value={entry.key}
-            onChange={(e) => {
-              const updated = [...form.specs];
-              updated[gIdx].entries[eIdx].key = e.target.value;
-              setForm({ ...form, specs: updated });
-            }}
-          />
-          <Input
-            placeholder="Value"
-            value={entry.value}
-            onChange={(e) => {
-              const updated = [...form.specs];
-              updated[gIdx].entries[eIdx].value = e.target.value;
-              setForm({ ...form, specs: updated });
-            }}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              const updated = [...form.specs];
-              updated[gIdx].entries.splice(eIdx, 1);
-              setForm({ ...form, specs: updated });
-            }}
-          >
-            <Trash className="w-4 h-4" />
-          </Button>
-        </div>
-      ))}
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          onClick={() => {
-            const updated = [...form.specs];
-            updated[gIdx].entries.push({ key: "", value: "" });
-            setForm({ ...form, specs: updated });
-          }}
-        >
-          + Add Entry
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={() => {
-            const updated = [...form.specs];
-            updated.splice(gIdx, 1);
-            setForm({ ...form, specs: updated });
-          }}
-        >
-          Remove Spec Group
-        </Button>
-      </div>
-    </div>
-  ))}
-  <Button
-    variant="outline"
-    onClick={() =>
-      setForm({
-        ...form,
-        specs: [...form.specs, { title: "", entries: [{ key: "", value: "" }] }],
-      })
-    }
-  >
-    <Plus className="h-4 w-4 mr-2" /> Add Spec Group
-  </Button>
-</div> */}
 
-
+<div className="my-4 flex flex-col space-y-6">
 <SpecificationEditor
   specifications={form.specs}
   onChange={(specs) => setForm({ ...form, specs })}
@@ -420,6 +337,7 @@ export default function ProductForm({
   variants={form.variants}
   onChange={(variants) => setForm({ ...form, variants })}
 />
+</div>
 
       {/* Submit */}
       <div className="mt-10">

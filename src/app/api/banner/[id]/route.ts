@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 // GET /api/banner/:id – Fetch one banner
 export async function GET(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -23,8 +23,8 @@ export async function GET(
 }
 
 // PUT /api/banner/:id – Update banner
-export async function PUT(
-  req: Request,
+export async function PATCH(
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -38,8 +38,8 @@ export async function PUT(
         image: data.image,
         ctaText: data.ctaText,
         ctaLink: data.ctaLink,
-        startDate: data.startDate,
-        endDate: data.endDate,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
         isActive: data.isActive,
         priority: data.priority,
       },
@@ -54,7 +54,7 @@ export async function PUT(
 
 // DELETE /api/banner/:id – Delete banner
 export async function DELETE(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

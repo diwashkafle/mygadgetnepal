@@ -1,205 +1,259 @@
-'use client'
+'use client';
+
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {Switch} from '@/components/ui/switch'
-import Image from 'next/image';
-import React, { useState } from 'react'
-import { uploadToFirebase } from '@/lib/firebase/uploadToFirebase';
-import toast from "react-hot-toast";
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { uploadToFirebase } from '@/lib/firebase/uploadToFirebase';
+import { Banner } from '@prisma/client';
+import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { Loader2, Trash } from 'lucide-react';
+import { deleteFromFirebase } from '@/lib/firebase/deleteFormFirebase';
+import { extractFirebasePath } from '@/lib/firebase/extractFromFirebase';
 
-const BannerPage = () => {
-    const [form, setForm] = useState({
-        title: "",
-        subtitle: "",
-        image: null as File | string | null,
-        ctaText: "",
-        ctaLink: "",
-        startDate: "",
-        endDate: "",
-        isActive: true,
-        priority: 0,
+interface BannerFormProps {
+  mode: 'add' | 'edit';
+  initialData?: Banner;
+  onSubmitSuccess?: () => void;
+}
+
+export default function BannerForm({ mode, initialData, onSubmitSuccess }: BannerFormProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [imageDeleted, setImageDeleted] = useState(false);
+
+  const [form, setForm] = useState({
+    title: '',
+    subtitle: '',
+    image: null as File | string | null,
+    ctaText: '',
+    ctaLink: '',
+    startDate: '',
+    endDate: '',
+    isActive: true,
+    priority: 0,
+  });
+
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        title: initialData.title,
+        subtitle: initialData.subtitle,
+        image: initialData.image,
+        ctaText: initialData.ctaText,
+        ctaLink: initialData.ctaLink,
+        startDate: new Date(initialData.startDate).toISOString().slice(0, 10),
+        endDate: new Date(initialData.endDate).toISOString().slice(0, 10),
+        isActive: initialData.isActive,
+        priority: initialData.priority,
       });
+    }
+  }, [initialData]);
 
-      const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-      
-        try {
-          let imageUrl = form.image;
-          if (form.image instanceof File) {
-                imageUrl = await uploadToFirebase(form.image);
-          }
-      
-          const payload = {
-            ...form,
-            image: imageUrl,
-          };
-      
-          const response = await fetch("/api/banner", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-      
-          if (!response.ok) throw new Error("Upload failed");
-          toast.success("Banner uploaded");
-          setForm({
-            title: "",
-            subtitle: "",
-            image: null,
-            ctaText: "",
-            ctaLink: "",
-            startDate: "",
-            endDate: "",
-            isActive: true,
-            priority: 0,
-          });
-        } catch (error) {
-          console.error(error);
-          toast.error("Something went wrong");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      let imageUrl = form.image;
+
+      // New image uploaded
+      if (form.image instanceof File) {
+        if (mode === 'edit' && typeof initialData?.image === 'string') {
+          const oldPath = extractFirebasePath(initialData.image);
+          if (oldPath) await deleteFromFirebase(oldPath);
         }
-      };
-      
-      return (
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
-          <h1 className="text-2xl font-bold">Upload Promotional Banner</h1>
-      
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Banner Title</label>
-              <Input
-                placeholder="e.g., Dashain Offer | Launching New Galaxy Series"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-              />
-            </div>
-      
-            {/* Subtitle */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Short Description (optional)
-              </label>
-              <Textarea
-                placeholder="Highlight deals, product info, or festive context..."
-                value={form.subtitle}
-                onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-              />
-            </div>
-      
-            {/* Image Upload */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Banner Image (Required)
-              </label>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) setForm({ ...form, image: file });
-                }}
-              />
-              {form.image && typeof form.image !== "string" && (
-                <Image
-                  src={URL.createObjectURL(form.image)}
-                  alt="preview"
-                  width={500}
-                  height={250}
-                  className="rounded mt-4 border"
-                />
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Recommended aspect ratio: 16:9 (e.g., 1600x900 px)
-              </p>
-            </div>
-      
-            {/* CTA Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  CTA Button Text
-                </label>
-                <Input
-                  placeholder='e.g., "Shop Now", "See Details"'
-                  value={form.ctaText}
-                  onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
-                />
-              </div>
-      
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  CTA Button Link
-                </label>
-                <Input
-                  placeholder='e.g., "/categories/smartphones"'
-                  value={form.ctaLink}
-                  onChange={(e) => setForm({ ...form, ctaLink: e.target.value })}
-                />
-              </div>
-            </div>
-      
-            {/* Date Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">Start Date</label>
-                <Input
-                  type="date"
-                  value={form.startDate}
-                  onChange={(e) =>
-                    setForm({ ...form, startDate: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">End Date</label>
-                <Input
-                  type="date"
-                  value={form.endDate}
-                  onChange={(e) =>
-                    setForm({ ...form, endDate: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-      
-            {/* Priority + Status */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div>
-                <label className="block text-sm font-medium mb-1">Priority</label>
-                <Input
-                  type="number"
-                  placeholder="e.g., 10 (higher shows first)"
-                  value={form.priority}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      priority: parseInt(e.target.value) || 0,
-                    })
-                  }
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Higher priority banners appear first on the homepage.
-                </p>
-              </div>
-      
-              <div className="flex items-center gap-3 mt-6 md:mt-0">
-                <Switch
-                  checked={form.isActive}
-                  onCheckedChange={(checked) =>
-                    setForm({ ...form, isActive: checked })
-                  }
-                />
-                <span>{form.isActive ? "Active" : "Inactive"}</span>
-              </div>
-            </div>
-      
-            <Button type="submit" className="w-full md:w-auto">
-              Upload Banner
-            </Button>
-          </form>
-        </div>
-      );
-    }      
+        imageUrl = await uploadToFirebase(form.image);
+      }
 
-export default BannerPage
+      // Image deleted in edit mode
+      if (mode === 'edit' && imageDeleted && typeof initialData?.image === 'string') {
+        const oldPath = extractFirebasePath(initialData.image);
+        if (oldPath) await deleteFromFirebase(oldPath);
+        imageUrl = null;
+      }
+
+      const payload = {
+        ...form,
+        image: imageUrl,
+      };
+
+      const res = await fetch(
+        mode === 'edit' ? `/api/banner/${initialData?.id}` : '/api/banner',
+        {
+          method: mode === 'edit' ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) throw new Error('Something went wrong');
+
+      toast.success(mode === 'edit' ? 'Banner updated' : 'Banner uploaded');
+      if (onSubmitSuccess) onSubmitSuccess();
+      else router.push('/admin/banner');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to submit');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <div>
+        <label className="block text-sm font-medium mb-1">Banner Title</label>
+        <Input
+          placeholder="e.g., Dashain Offer | Galaxy Launch"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Short Description</label>
+        <Textarea
+          placeholder="Highlight details or occasion..."
+          value={form.subtitle}
+          onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Banner Image</label>
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setForm({ ...form, image: file });
+              setImageDeleted(false); // reset deletion flag
+            }
+          }}
+        />
+
+        {form.image && (
+          <div className="mt-4 flex justify-between">
+            <Image
+              src={
+                typeof form.image === 'string'
+                  ? form.image
+                  : URL.createObjectURL(form.image)
+              }
+              alt="Banner preview"
+              width={500}
+              height={250}
+              className="rounded border"
+            />
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setForm({ ...form, image: null });
+                setImageDeleted(true);
+              }}
+              className="p-1 h-10 transition-all items-center duration-200 ease-in rounded-lg cursor-pointer hover:bg-gray-100"
+            >
+              <Trash color="red" size={20} />
+            </button>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground mt-1">
+          Recommended: 1600x900 px (16:9 aspect ratio)
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium mb-1">CTA Button Text</label>
+          <Input
+            placeholder='e.g., "Shop Now"'
+            value={form.ctaText}
+            onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">CTA Link</label>
+          <Input
+            placeholder='e.g., "/categories/smartphones"'
+            value={form.ctaLink}
+            onChange={(e) => setForm({ ...form, ctaLink: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium mb-1">Start Date</label>
+          <Input
+            type="date"
+            value={form.startDate}
+            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">End Date</label>
+          <Input
+            type="date"
+            value={form.endDate}
+            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div>
+          <label className="block text-sm font-medium mb-1">Priority</label>
+          <Input
+            type="number"
+            value={form.priority}
+            onChange={(e) =>
+              setForm({ ...form, priority: parseInt(e.target.value) || 0 })
+            }
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Higher priority = shown first
+          </p>
+        </div>
+        <div className="flex items-center gap-3 mt-6 md:mt-0">
+          <Switch
+            checked={form.isActive}
+            onCheckedChange={(checked) =>
+              setForm({ ...form, isActive: checked })
+            }
+          />
+          <span>{form.isActive ? 'Active' : 'Inactive'}</span>
+        </div>
+      </div>
+
+      <div className="flex gap-4 flex-wrap">
+        <Button type="submit" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              {mode === 'edit' ? 'Updating...' : 'Uploading...'}
+            </>
+          ) : mode === 'edit' ? (
+            'Update Banner'
+          ) : (
+            'Upload Banner'
+          )}
+        </Button>
+        {mode === 'edit' && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => router.push('/admin/banner')}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
