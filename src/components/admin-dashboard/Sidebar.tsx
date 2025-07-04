@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MdSpaceDashboard, MdInventory } from "react-icons/md";
-import { FaShoppingBag } from "react-icons/fa";
+import { FaBookmark, FaShoppingBag } from "react-icons/fa";
 import { BsBoxes } from "react-icons/bs";
 import clsx from "clsx";
 
@@ -33,6 +33,12 @@ const navItems = [
     icon: <FaShoppingBag size={20} />,
     href: "/admin/orders",
   },
+  {
+    label:"Manage Banners",
+    icon:<FaBookmark size={20} />,
+    href:"/admin/banner",
+
+  }
 ];
 
 export default function Sidebar() {

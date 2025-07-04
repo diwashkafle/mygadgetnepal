@@ -29,13 +29,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ClientLayoutWrapper>
-          <main className="min-h-[calc(100vh-8rem)] px-4 sm:px-8 py-4">
+          <main className="min-h-[calc(100vh-8rem)]py-4">
         <Toaster position='top-right'/>
             {children}
           </main>
           <Footer />
           </ClientLayoutWrapper>
-=      </body>
+   </body>
     </html>
   );
 }
