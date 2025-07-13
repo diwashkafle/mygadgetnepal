@@ -4,15 +4,12 @@ import { NextResponse } from "next/server";
 // GET: Fetch all banners
 export async function GET() {
   try {
-    const now = new Date();
     const banners = await prisma.banner.findMany({
       where: {
         isActive: true,
-        startDate: { lte: now },
-        endDate: { gte: now },
       },
       orderBy: {
-        priority: "desc",
+       createdAt:'desc',
       },
     });
 
@@ -30,23 +27,17 @@ export async function POST(req: Request) {
 
     const {
       title,
-      subtitle,
       image,
       ctaText,
       ctaLink,
-      startDate,
-      endDate,
-      isActive,
-      priority,
+      isActive = true,
     } = body;
 
     if (
       !title ||
       !image ||
       !ctaText ||
-      !ctaLink ||
-      !startDate ||
-      !endDate
+      !ctaLink 
     ) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -57,14 +48,10 @@ export async function POST(req: Request) {
     const newBanner = await prisma.banner.create({
       data: {
         title,
-        subtitle,
         image,
         ctaText,
         ctaLink,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
         isActive,
-        priority: Number(priority),
       },
     });
 

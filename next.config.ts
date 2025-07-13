@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['firebasestorage.googleapis.com'],
+    domains: ['ik.imagekit.io'],
   },};
 
 export default nextConfig;

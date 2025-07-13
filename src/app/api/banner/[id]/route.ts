@@ -34,14 +34,10 @@ export async function PATCH(
       where: { id: params.id },
       data: {
         title: data.title,
-        subtitle: data.subtitle,
         image: data.image,
         ctaText: data.ctaText,
         ctaLink: data.ctaLink,
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
         isActive: data.isActive,
-        priority: data.priority,
       },
     });
 

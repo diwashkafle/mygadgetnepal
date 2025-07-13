@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/select";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import {Trash2 } from "lucide-react";
-import { uploadToFirebase } from "@/lib/firebase/uploadToFirebase";
+import { Trash2 } from "lucide-react";
+import { uploadImagesToImageKit } from "@/lib/imageKit/uploadImagetoImageKit";
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -36,8 +36,6 @@ export type Category = {
   name: string;
 };
 
-
-
 export type ProductData = {
   id?: string;
   name: string;
@@ -48,8 +46,8 @@ export type ProductData = {
   status: string;
   description: string;
   images: (string | File)[];
-  specifications: SpecificationGroup[]
-  variants: VariantGroup[]
+  specifications: SpecificationGroup[];
+  variants: VariantGroup[];
 };
 
 export type ProductFormProps = {
@@ -73,7 +71,7 @@ export default function ProductForm({
     description: initialData?.description || "",
     images: initialData?.images || [],
     specs: initialData?.specifications || [
-      { title: "", entries: [{ key: "", value: "" }] }
+      { title: "", entries: [{ key: "", value: "" }] },
     ],
     variants: initialData?.variants || [
       {
@@ -81,7 +79,8 @@ export default function ProductForm({
         type: "price",
         types: [{ value: "", price: 0 }],
       },
-    ],  });
+    ],
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
@@ -123,8 +122,8 @@ export default function ProductForm({
       for (const img of form.images) {
         if (typeof img === "string") imageUrls.push(img);
         else if (img instanceof File) {
-          const url = await uploadToFirebase(img);
-          imageUrls.push(url);
+          const url = await uploadImagesToImageKit([img]);
+          imageUrls.push(...url);
         }
       }
 
@@ -133,7 +132,7 @@ export default function ProductForm({
         categoryId: form.categoryId,
         price: Number(form.price),
         crossedPrice: Number(form.crossedPrice),
-        stock:Number(form.stock),
+        stock: Number(form.stock),
         status: form.status,
         description: form.description,
         images: imageUrls,
@@ -279,7 +278,6 @@ export default function ProductForm({
                 <Input
                   type="file"
                   accept="image/*"
-            
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -326,28 +324,37 @@ export default function ProductForm({
         </div>
       </div>
 
+      <div className="my-4 flex flex-col space-y-6">
+        <SpecificationEditor
+          specifications={form.specs}
+          onChange={(specs) => setForm({ ...form, specs })}
+        />
 
-<div className="my-4 flex flex-col space-y-6">
-<SpecificationEditor
-  specifications={form.specs}
-  onChange={(specs) => setForm({ ...form, specs })}
-/>
-
-<VariantEditor
-  variants={form.variants}
-  onChange={(variants) => setForm({ ...form, variants })}
-/>
-</div>
+        <VariantEditor
+          variants={form.variants}
+          onChange={(variants) => setForm({ ...form, variants })}
+        />
+      </div>
 
       {/* Submit */}
-      <div className="mt-10">
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
+      <div className="mt-10 space-x-5">
+        <Button onClick={handleSubmit} className="cursor-pointer" disabled={isSubmitting}>
           {isSubmitting
             ? "Submitting..."
             : mode === "add"
             ? "Submit Product"
             : "Update Product"}
         </Button>
+        {mode === "edit" && (
+          <Button
+          className="cursor-pointer"
+            type="button"
+            variant="ghost"
+            onClick={() => router.push("/admin/products")}
+          >
+            Cancel
+          </Button>
+        )}
       </div>
       <AlertDialog
         open={showDuplicateWarning}
@@ -403,8 +410,8 @@ export default function ProductForm({
                     variants: [
                       {
                         name: "",
-                        type:"price",
-                        types: [{ value: "", price:0 }],
+                        type: "price",
+                        types: [{ value: "", price: 0 }],
                       },
                     ],
                   });

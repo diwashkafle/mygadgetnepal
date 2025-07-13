@@ -429,7 +429,7 @@
 //   );
 // }
 
-import ProductForm, { Category } from "@/components/admin-dashboard/ProductForm"; // adjust path if needed
+import ProductForm, { Category } from "@/components/admin-dashboard/ProductForm"; 
 export default async function AddProductPage() {
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/category`, {
     cache: "no-store",

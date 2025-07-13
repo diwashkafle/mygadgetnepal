@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 const page = () => {
   return (
-    <div>
+    <div className='max-w-4xl mx-auto px-4 py-8 space-y-10'>
       <Link href={'/admin/banner'}>
       <button className='cursor-pointer'>
        <IoArrowBackOutline size={25} />

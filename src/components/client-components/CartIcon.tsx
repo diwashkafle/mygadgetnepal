@@ -1,24 +1,28 @@
-
 "use client";
 
-import Link from "next/link";
 import { useCartStore } from "@/store/cart-store";
-import { ShoppingCart } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { LucideShoppingBag } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
-export default function CartIcon() {
-  const totalItems = useCartStore((state) => state.getTotalItems());
+
+export default function CartIconWithBadge() {
+  const cart = useCartStore();
+  const [quantity, setQuantity] = useState(0);
+
+  useEffect(() => {
+    setQuantity(cart.getTotalQuantity());
+  }, [cart.items]); // triggers re-render on cart update
 
   return (
-    <Link href="/cart" className="relative">
-      <ShoppingCart className="h-6 w-6" />
-      {totalItems > 0 && (
-        <Badge
-          className="absolute -top-2 -right-2 rounded-full px-2 py-0.5 text-xs bg-red-600 text-white"
-        >
-          {totalItems}
-        </Badge>
+    <Link href="/cart" className="relative flex flex-col items-center">
+      <LucideShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
+      {quantity > 0 && (
+        <span className="absolute -top-2 -right-2 text-xs bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center">
+          {quantity}
+        </span>
       )}
+      <h1 className="flex md:hidden text-sm">Cart</h1>
     </Link>
   );
 }

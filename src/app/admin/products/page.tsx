@@ -62,7 +62,7 @@ export default function AllProductsPage() {
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) =>
+    return products?.filter((product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [products, searchQuery]);

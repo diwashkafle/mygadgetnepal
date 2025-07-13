@@ -5,9 +5,14 @@ export type SpecificationGroup = {
   
   export type VariantGroup = {
     name: string;
-    type: "price" | "color";  
+    type: "price" | "color";
     types: {
       value: string;
       price?: number;
+      images?: {
+        url: string;
+        alt: string;
+      }[];
     }[];
   };
+  

@@ -80,18 +80,22 @@ export default function Hero() {
     fetchBanners();
   }, []);
 
-  if (banners.length === 0) return null;
-
+  if (banners.length === 0) {
+    return (
+      <div className="w-full aspect-[32/9] bg-neutral-900 animate-pulse rounded-md" />
+    );
+  }
+  
   return (
     <div className="relative">
       <div
         ref={sliderRef}
-        className="keen-slider w-full overflow-hidden relative aspect-[4/1] sm:aspect-[24/9] md:aspect-[4/1] bg-neutral-900"
+        className="keen-slider w-full rounded-lg overflow-hidden relative aspect-[4/1] sm:aspect-[24/9] md:aspect-[32/9] bg-neutral-900"
       >
         {banners.map((banner, idx) => (
           <div
             key={idx}
-            className="keen-slider__slide relative w-full aspect-[4/1] sm:aspect-[24/9] md:aspect-[4/1] rounded-md overflow-hidden shadow-md"
+            className="keen-slider__slide relative w-full aspect-[4/1] sm:aspect-[24/9] md:aspect-[32/9] rounded-md overflow-hidden shadow-md"
           >
             <Image
               src={banner.image}
