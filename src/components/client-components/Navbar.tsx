@@ -7,12 +7,15 @@ import { PiSignInBold } from "react-icons/pi";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
-import MobileMenu from "./MobileMenu";
-import UserDropdown from "./UserDropdown";
-import CartIconWithBadge from "./CartIcon";
+import MobileMenu from "@/components/client-components/MobileMenu";
+import UserDropdown from "@/components/client-components/UserDropdown";
+import CartIconWithBadge from "@/components/client-components/CartIcon";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [session, setSession] = useState<Session | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
@@ -36,6 +39,16 @@ export default function Navbar() {
     };
   }, []);
 
+  const handleSearch = () => {
+    if (!searchText.trim()) return;
+    router.push(`/search?query=${encodeURIComponent(searchText.trim())}`);
+    setSearchText("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") handleSearch();
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
@@ -47,25 +60,30 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link href="/" className="hover:text-black/80 transition">
-              Home
-            </Link>
-            <Link href="/categories" className="hover:text-black/80 transition">
-              Categories
-            </Link>
-            <Link href="/favorites" className="hover:text-black/80 transition">
-              Favorites
-            </Link>
+            <Link href="/" className="hover:text-black/80 transition">Home</Link>
+            <Link href="/categories" className="hover:text-black/80 transition">Categories</Link>
+            <Link href="/favorites" className="hover:text-black/80 transition">Favorites</Link>
           </nav>
         </div>
 
         {/* Desktop Center: Search */}
         <div className="hidden md:flex flex-1 max-w-md mx-auto">
-          <Input
-            type="search"
-            placeholder="Search for gadgets..."
-            className="w-full"
-          />
+          <div className="relative w-full">
+            <Input
+              type="search"
+              placeholder="Search for gadgets..."
+              className="w-full"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <button
+              onClick={handleSearch}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 text-sm bg-black text-white px-3 py-1 rounded"
+            >
+              Search
+            </button>
+          </div>
         </div>
 
         {/* Desktop Right: Cart + User */}
@@ -85,9 +103,24 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Right: Search + UserDropdown only */}
+        {/* Mobile Right: Search + User */}
         <div className="flex md:hidden items-center gap-2 w-full">
-          <Input type="search" placeholder="Search..." className="flex-1 h-9" />
+          <div className="relative flex-1">
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="w-full h-9"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <button
+              onClick={handleSearch}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 text-xs bg-black text-white px-2 py-1 rounded"
+            >
+              Go
+            </button>
+          </div>
 
           {session ? (
             <UserDropdown session={session} />
@@ -95,10 +128,11 @@ export default function Navbar() {
             <button
               onClick={() =>
                 supabase.auth.signInWithOAuth({
-                   provider: "google" ,
-                  options:{
-                    redirectTo:`${window.location.origin}/auth/callback?next=/checkout`,
-                  }})
+                  provider: "google",
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback?next=/checkout`,
+                  },
+                })
               }
               className="inline-flex"
             >
@@ -106,6 +140,7 @@ export default function Navbar() {
             </button>
           )}
         </div>
+
         <MobileMenu />
       </div>
     </header>

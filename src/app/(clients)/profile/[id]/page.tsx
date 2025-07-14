@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabaseServer";
+import { createApiClient } from "@/lib/supabaseServer";
 import { notFound, redirect } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EditProfileForm from "@/components/client-components/EditProfileForm";
@@ -10,7 +10,7 @@ interface ProfilePageProps {
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const supabase = await createClient();
+  const supabase = await createApiClient();
 
   const {
     data: { session },

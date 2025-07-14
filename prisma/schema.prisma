@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,80 +8,91 @@ datasource db {
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String
-  products  Product[]
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  products    Product[]
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  name          String
-  description   String
-  price         Float
-  crossedPrice  Float
-  stock         Int
-  status        String   // 'Published' | 'Draft'
-  categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id])
-  orderItems    OrderItem[]
-  images        String[] // Image URLs
-  specifications Json     // Array of { key: string, value: string }
-  variants       Json     // Array of { name: string, values: string[] }
-  createdAt     DateTime @default(now())
+  id             String   @id @default(cuid())
+  name           String
+  description    String
+  price          Float
+  crossedPrice   Float
+  stock          Int
+  status         String
+  categoryId     String
+  images         String[]
+  specifications Json
+  variants       Json
+  createdAt      DateTime @default(now())
+  reviews        Review[]
+
+  category Category @relation(fields: [categoryId], references: [id])
 }
+
 model Banner {
   id        String   @id @default(cuid())
   title     String
   image     String
   ctaText   String
   ctaLink   String
+  fileId    String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 }
 
-
 model Order {
-  id            String     @id @default(cuid())
-  createdAt     DateTime   @default(now())
-  totalPrice    Float
-  items         OrderItem[]
-  customerEmail String
-  customerName  String
-  address       String
-  phone         String
-  status        OrderStatus
+  id          String       @id @default(cuid())
+  userId      String?
+  customer    Json // delivery info at the time of order
+  items       Json // [{ productId, name, price, quantity }]
+  total       Int
+  status      OrderStatus  @default(Pending)
+  paymentType PaymentType? // cod, esewa, etc.
+  createdAt   DateTime     @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
 }
 
-model OrderItem {
+enum PaymentType {
+  COD
+  ESEWA
+  FONEPAY
+  KHALTI
+}
+
+model Review {
   id        String   @id @default(cuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id])
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
+  userId    String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 }
 
 model AdminUser {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String   // hashed password
-  createdAt DateTime @default(now())
+  id          String               @id @default(cuid())
+  email       String               @unique
+  password    String
+  createdAt   DateTime             @default(now())
   resetTokens PasswordResetToken[]
 }
 
 model PasswordResetToken {
-  id          String   @id @default(cuid())
-  adminUser   AdminUser @relation(fields: [adminUserId], references: [id])
+  id          String    @id @default(cuid())
   adminUserId String
-  token       String   @unique
+  token       String    @unique
   expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id])
 }
-
 
 enum ProductStatus {
   Published
@@ -99,4 +104,22 @@ enum OrderStatus {
   Paid
   Shipped
   Cancelled
+  Created
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  phone     String?
+  password  String? // if you're not using OAuth
+  orders    Order[]
+  role      Role     @default(USER)
+  review    Review[]
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  USER
 }

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash, Plus } from "lucide-react";
 import { VariantGroup } from "@/Types/adminComponentTypes";
-import { uploadImagesToImageKit } from "@/lib/imageKit/uploadImagetoImageKit"; // make sure this exists
+import { uploadImagesToImageKit } from "@/lib/imageKit/uploadImagetoImageKit";
 import Image from "next/image";
 import { ChangeEvent } from "react";
 
@@ -24,9 +24,8 @@ export default function VariantEditor({ variants, onChange }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const [url] = await uploadImagesToImageKit([file]);
+    const [{ url }] = await uploadImagesToImageKit([file]); // ✅ Corrected destructuring
     const updated = [...variants];
-
     const variantType = updated[vIdx].types[tIdx];
 
     if (!variantType.images) {
@@ -149,12 +148,16 @@ export default function VariantEditor({ variants, onChange }: Props) {
                         key={imgIdx}
                         className="relative w-20 h-20 rounded overflow-hidden border"
                       >
-                        <Image
-                          src={img.url}
-                          alt={img.alt}
-                          fill
-                          className="object-cover"
-                        />
+                        {img.url ? (
+                          <Image
+                            src={img.url}
+                            alt={img.alt || "Uploaded image"}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200" />
+                        )}
                         <button
                           type="button"
                           onClick={() =>

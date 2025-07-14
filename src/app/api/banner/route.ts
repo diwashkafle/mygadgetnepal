@@ -15,8 +15,7 @@ export async function GET() {
 
     return NextResponse.json(banners);
   } catch (error) {
-    console.error("Error fetching banners:", error);
-    return NextResponse.json({ message: "Failed to fetch banners" }, { status: 500 });
+    return NextResponse.json({ message: "Failed to fetch banners",error }, { status: 500 });
   }
 }
 
@@ -30,6 +29,7 @@ export async function POST(req: Request) {
       image,
       ctaText,
       ctaLink,
+      fileid,
       isActive = true,
     } = body;
 
@@ -52,14 +52,14 @@ export async function POST(req: Request) {
         ctaText,
         ctaLink,
         isActive,
+        fileId:fileid
       },
     });
 
     return NextResponse.json(newBanner);
   } catch (error) {
-    console.error("Banner create error:", error);
     return NextResponse.json(
-      { message: "Failed to create banner" },
+      { message: "Failed to create banner",error },
       { status: 500 }
     );
   }

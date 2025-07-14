@@ -22,9 +22,9 @@ export default async function HomePage() {
       <div>
         <Hero/>
       </div>
-      <h1 className="text-2xl font-bold mb-6">Latest Products</h1>
+      <h1 className="text-2xl font-bold my-2 md:my-4 mb-6">Latest Products</h1>
 
-      <div className="flex space-x-10 ">
+      <div className="grid grid-cols-4 gap-5 space-y-10 ">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

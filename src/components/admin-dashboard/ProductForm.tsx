@@ -119,13 +119,16 @@ export default function ProductForm({
       }
 
       const imageUrls: string[] = [];
-      for (const img of form.images) {
-        if (typeof img === "string") imageUrls.push(img);
-        else if (img instanceof File) {
-          const url = await uploadImagesToImageKit([img]);
-          imageUrls.push(...url);
-        }
-      }
+
+for (const img of form.images) {
+  if (typeof img === "string") {
+    imageUrls.push(img); // Already a string, OK
+  } else if (img instanceof File) {
+    const uploaded = await uploadImagesToImageKit([img]); // uploaded is [{ url, fileId }]
+    const urls = uploaded.map((u) => u.url); // extract string URLs
+    imageUrls.push(...urls); // ✅ Now pushing strings
+  }
+}
 
       const payload = {
         name: form.name,

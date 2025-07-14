@@ -3,15 +3,14 @@
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { uploadToFirebase } from '@/lib/firebase/uploadToFirebase';
-import { Banner } from '@prisma/client';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2, Trash } from 'lucide-react';
-import { deleteFromFirebase } from '@/lib/firebase/deleteFormFirebase';
-import { extractFirebasePath } from '@/lib/firebase/extractFromFirebase';
+import { uploadImagesToImageKit } from '@/lib/imageKit/uploadImagetoImageKit';
+import { deleteFromImageKit } from '@/lib/imageKit/deleteImage';
+import { Banner } from '@prisma/client';
 
 interface BannerFormProps {
   mode: 'add' | 'edit';
@@ -27,6 +26,7 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
   const [form, setForm] = useState({
     title: '',
     image: null as File | string | null,
+    fileId: '',
     ctaText: '',
     ctaLink: '',
     isActive: true,
@@ -37,6 +37,7 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
       setForm({
         title: initialData.title,
         image: initialData.image,
+        fileId: initialData.fileId || '',
         ctaText: initialData.ctaText,
         ctaLink: initialData.ctaLink,
         isActive: initialData.isActive,
@@ -47,29 +48,43 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
       let imageUrl = form.image;
-
+      let fileId = form.fileId;
+  
+      // If uploading a new image
       if (form.image instanceof File) {
-        if (mode === 'edit' && typeof initialData?.image === 'string') {
-          const oldPath = extractFirebasePath(initialData.image);
-          if (oldPath) await deleteFromFirebase(oldPath);
+        // Delete old image if editing
+        if (mode === 'edit' && form.fileId) {
+          await deleteFromImageKit(form.fileId);
         }
-        imageUrl = await uploadToFirebase(form.image);
+  
+        const uploaded = await uploadImagesToImageKit([form.image]);
+        if (!uploaded || uploaded.length === 0) {
+          throw new Error("Image upload failed");
+        }
+  
+        imageUrl = uploaded[0].url;
+        fileId = uploaded[0].fileId;
       }
-
-      if (mode === 'edit' && imageDeleted && typeof initialData?.image === 'string') {
-        const oldPath = extractFirebasePath(initialData.image);
-        if (oldPath) await deleteFromFirebase(oldPath);
+  
+      // If image was removed in edit mode
+      if (mode === 'edit' && imageDeleted && form.fileId) {
+        await deleteFromImageKit(form.fileId);
         imageUrl = null;
+        fileId = '';
       }
-
+  
       const payload = {
-        ...form,
+        title: form.title,
         image: imageUrl,
+        fileId,
+        ctaText: form.ctaText,
+        ctaLink: form.ctaLink,
+        isActive: form.isActive,
       };
-
+  
       const res = await fetch(
         mode === 'edit' ? `/api/banner/${initialData?.id}` : '/api/banner',
         {
@@ -78,12 +93,13 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
           body: JSON.stringify(payload),
         }
       );
-
+  
       if (!res.ok) throw new Error('Something went wrong');
-
       toast.success(mode === 'edit' ? 'Banner updated' : 'Banner uploaded');
+  
       if (onSubmitSuccess) onSubmitSuccess();
       else router.push('/admin/banner');
+  
     } catch (error) {
       console.error(error);
       toast.error('Failed to submit');
@@ -91,6 +107,7 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
       setLoading(false);
     }
   };
+  
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -120,13 +137,13 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
         {form.image && (
           <div className="mt-4 flex flex-col space-y-10 justify-between">
             <div>
-            <Image
-              src={typeof form.image === 'string' ? form.image : URL.createObjectURL(form.image)}
-              alt="Banner preview"
-              height={300}
-              width={300}
-              className="object-cover"
-            />
+              <Image
+                src={typeof form.image === 'string' ? form.image : URL.createObjectURL(form.image)}
+                alt="Banner preview"
+                height={300}
+                width={300}
+                className="object-cover"
+              />
             </div>
             <button
               onClick={(e) => {
@@ -134,13 +151,12 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
                 setForm({ ...form, image: null });
                 setImageDeleted(true);
               }}
-              className="p-1 h-10 w-8 flex justify-center transition-all items-center duration-200 ease-in rounded-lg cursor-pointer hover:bg-gray-100"
+              className="p-1 h-10 w-8 flex justify-center items-center rounded-lg hover:bg-gray-100 transition-all"
             >
               <Trash color="red" size={20} />
             </button>
           </div>
         )}
-
         <p className="text-xs text-muted-foreground mt-1">Recommended: 1200x300 px</p>
       </div>
 
@@ -172,17 +188,16 @@ export default function BannerForm({ mode, initialData, onSubmitSuccess }: Banne
       </div>
 
       <h1>Preview</h1>
-
-     {
-      form.image &&  <div className="relative w-full aspect-[4/1] sm:aspect-[24/9] md:aspect-[32/9] rounded-md overflow-hidden shadow-md">
-      <Image
-        src={typeof form.image === 'string' ? form.image : URL.createObjectURL(form.image)}
-        alt={form.title}
-        fill
-        className=" object-cover "
-      />
-    </div> 
-     }
+      {form.image && (
+        <div className="relative w-full aspect-[4/1] sm:aspect-[24/9] md:aspect-[32/9] rounded-md overflow-hidden shadow-md">
+          <Image
+            src={typeof form.image === 'string' ? form.image : URL.createObjectURL(form.image)}
+            alt={form.title}
+            fill
+            className="object-cover"
+          />
+        </div>
+      )}
 
       <div className="flex gap-4 flex-wrap">
         <Button type="submit" disabled={loading}>

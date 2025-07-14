@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
 
-// GET /api/banner/:id – Fetch one banner
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -17,8 +16,7 @@ export async function GET(
 
     return NextResponse.json(banner);
   } catch (err) {
-    console.error("GET BANNER ERROR:", err);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ message: "Internal server error",err }, { status: 500 });
   }
 }
 
@@ -43,8 +41,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedBanner);
   } catch (err) {
-    console.error("UPDATE BANNER ERROR:", err);
-    return NextResponse.json({ message: "Update failed" }, { status: 500 });
+    return NextResponse.json({ message: "Update failed",err }, { status: 500 });
   }
 }
 
@@ -60,7 +57,6 @@ export async function DELETE(
 
     return NextResponse.json({ message: "Banner deleted" });
   } catch (err) {
-    console.error("DELETE BANNER ERROR:", err);
-    return NextResponse.json({ message: "Deletion failed" }, { status: 500 });
+    return NextResponse.json({ message: "Deletion failed",err }, { status: 500 });
   }
 }

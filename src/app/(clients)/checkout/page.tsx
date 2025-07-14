@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { createClient } from "@/lib/supabaseClient";
 
 export default function CheckoutPage() {
   const { items, clearCart } = useCartStore();
@@ -22,10 +23,33 @@ export default function CheckoutPage() {
     postalCode: "",
   });
 
+  const [emailLocked, setEmailLocked] = useState(false);
+
   const total = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user?.email) {
+        setForm((prev) => ({ ...prev, email: session.user.email ?? "" }));
+        setEmailLocked(true);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const isValidNepaliPhone = (phone: string): boolean => {
+    const phoneRegex = /^(98|97)\d{8}$/;
+    return phoneRegex.test(phone);
+  };
 
   const handleOrder = async () => {
     if (
@@ -33,27 +57,49 @@ export default function CheckoutPage() {
       !form.email ||
       !form.phone ||
       !form.address ||
-      !form.city ||
-      !form.postalCode
+      !form.city
     ) {
       toast.error("Please fill in all fields.");
       return;
     }
 
-    // Simulate API order submission
+    if (!isValidNepaliPhone(form.phone)) {
+      toast.error("Enter a valid Nepali phone number!");
+      return;
+    }
+
     try {
       toast.loading("Placing order...");
 
-      // Simulate order API (later you'll call your actual API)
-      await new Promise((res) => setTimeout(res, 1000));
+      const res = await fetch("/api/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: form,
+          items,
+          total,
+          status: "Created", // or "Pending" if COD only
+        }),
+      });
 
       toast.dismiss();
-      toast.success("Order placed successfully!");
 
+      if (!res.ok) {
+        toast.error("Failed to place order");
+        return;
+      }
+
+      const data = await res.json();
+
+      toast.success("Order placed successfully!");
       clearCart();
-      router.push("/order-success"); // optional success page
+
+      // Redirect to payment with order ID
+      router.push(`/payment/${data.orderId}`);
     } catch (err) {
-        console.log(err)
+      console.error(err);
       toast.dismiss();
       toast.error("Something went wrong!");
     }
@@ -83,6 +129,7 @@ export default function CheckoutPage() {
             placeholder="Email"
             type="email"
             value={form.email}
+            readOnly={emailLocked}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <Input
@@ -146,6 +193,7 @@ export default function CheckoutPage() {
             <p>Total</p>
             <p>₹{total.toFixed(2)}</p>
           </div>
+
           <Button onClick={handleOrder} className="w-full mt-4">
             Place Order
           </Button>
