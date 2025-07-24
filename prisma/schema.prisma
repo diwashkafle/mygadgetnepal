@@ -8,15 +8,26 @@ datasource db {
 }
 
 model Category {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String
-  createdAt   DateTime  @default(now())
-  products    Product[]
+  id            String        @id @default(cuid())
+  name          String        @unique
+  description   String
+  createdAt     DateTime      @default(now())
+  products      Product[]
+  subcategories Subcategory[]   // uses model below
+}
+
+model Subcategory {
+  id           String     @id @default(cuid())
+  name         String
+  categoryId   String
+  createdAt    DateTime   @default(now())
+
+  category     Category   @relation(fields: [categoryId], references: [id])
+  products     Product[]
 }
 
 model Product {
-  id             String   @id @default(cuid())
+  id             String     @id @default(cuid())
   name           String
   description    String
   price          Float
@@ -24,13 +35,15 @@ model Product {
   stock          Int
   status         String
   categoryId     String
+  subcategoryId  String?
   images         String[]
   specifications Json
   variants       Json
-  createdAt      DateTime @default(now())
+  createdAt      DateTime   @default(now())
   reviews        Review[]
 
-  category Category @relation(fields: [categoryId], references: [id])
+  category       Category   @relation(fields: [categoryId], references: [id])
+  subcategory    Subcategory? @relation(fields: [subcategoryId], references: [id])
 }
 
 model Banner {
@@ -48,21 +61,15 @@ model Banner {
 model Order {
   id          String       @id @default(cuid())
   userId      String?
-  customer    Json // delivery info at the time of order
-  items       Json // [{ productId, name, price, quantity }]
+  customer    Json
+  items       Json
   total       Int
   status      OrderStatus  @default(Pending)
-  paymentType PaymentType? // cod, esewa, etc.
+  paymentStatus PaymentStatus @default(Unpaid)
+  paymentType PaymentType?
   createdAt   DateTime     @default(now())
 
-  user User? @relation(fields: [userId], references: [id])
-}
-
-enum PaymentType {
-  COD
-  ESEWA
-  FONEPAY
-  KHALTI
+  user   User?   @relation(fields: [userId], references: [id])
 }
 
 model Review {
@@ -77,21 +84,50 @@ model Review {
   user    User    @relation(fields: [userId], references: [id])
 }
 
-model AdminUser {
-  id          String               @id @default(cuid())
-  email       String               @unique
-  password    String
-  createdAt   DateTime             @default(now())
-  resetTokens PasswordResetToken[]
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  phone          String?
+  passwordHash   String?
+  role           Role      @default(USER)
+  orders         Order[]
+  review         Review[]
+  accounts       Account[]
+  sessions       Session[]
+  createdAt      DateTime  @default(now())
 }
 
-model PasswordResetToken {
-  id          String    @id @default(cuid())
-  adminUserId String
-  token       String    @unique
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
-  adminUser   AdminUser @relation(fields: [adminUserId], references: [id])
+
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 enum ProductStatus {
@@ -101,25 +137,26 @@ enum ProductStatus {
 
 enum OrderStatus {
   Pending
-  Paid
+  Confirmed
   Shipped
   Cancelled
   Created
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  phone     String?
-  password  String? // if you're not using OAuth
-  orders    Order[]
-  role      Role     @default(USER)
-  review    Review[]
-  createdAt DateTime @default(now())
+enum PaymentStatus {
+  Paid
+  Unpaid
+}
+
+enum PaymentType {
+  COD
+  ESEWA
+  FONEPAY
+  KHALTI
 }
 
 enum Role {
   ADMIN
   USER
 }
+

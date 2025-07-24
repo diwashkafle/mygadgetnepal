@@ -2,42 +2,30 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PiSignInBold } from "react-icons/pi";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabaseClient";
-import type { Session } from "@supabase/supabase-js";
 import MobileMenu from "@/components/client-components/MobileMenu";
 import UserDropdown from "@/components/client-components/UserDropdown";
 import CartIconWithBadge from "@/components/client-components/CartIcon";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { MdDashboard } from "react-icons/md";
+
+const ADMIN_EMAILS =
+  (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map((e) => e.trim());
 
 export default function Navbar() {
-  const [session, setSession] = useState<Session | null>(null);
   const [searchText, setSearchText] = useState("");
   const router = useRouter();
-  const supabase = createClient();
+  const { data: session } = useSession();
 
-  useEffect(() => {
-    const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-    };
+  const userEmail = session?.user?.email || "";
+  const isAdmin = userEmail && ADMIN_EMAILS.includes(userEmail);
 
-    getSession();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  console.log("Session email:", userEmail);
+  console.log("Allowed admin emails:", ADMIN_EMAILS);
+  console.log("isAdmin:", isAdmin);
 
   const handleSearch = () => {
     if (!searchText.trim()) return;
@@ -47,6 +35,10 @@ export default function Navbar() {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") handleSearch();
+  };
+
+  const handleSignIn = () => {
+    router.push("/sign-in");
   };
 
   return (
@@ -87,17 +79,17 @@ export default function Navbar() {
         </div>
 
         {/* Desktop Right: Cart + User */}
-        <div className="hidden md:flex items-center space-x-4">
+        <div className="hidden md:flex items-center space-x-5">
+          {isAdmin && (
+            <Link href="/admin" className="text-sm font-medium hover:underline cursor-pointer">
+              <MdDashboard size={25}/>
+            </Link>
+          )}
           <CartIconWithBadge />
-          {session ? (
-            <UserDropdown session={session} />
+          {session?.user ? (
+            <UserDropdown user={session.user} />
           ) : (
-            <button
-              onClick={() =>
-                supabase.auth.signInWithOAuth({ provider: "google" })
-              }
-              className="inline-flex"
-            >
+            <button onClick={handleSignIn} className="inline-flex">
               <PiSignInBold className="text-xl" />
             </button>
           )}
@@ -122,20 +114,10 @@ export default function Navbar() {
             </button>
           </div>
 
-          {session ? (
-            <UserDropdown session={session} />
+          {session?.user ? (
+            <UserDropdown user={session.user} />
           ) : (
-            <button
-              onClick={() =>
-                supabase.auth.signInWithOAuth({
-                  provider: "google",
-                  options: {
-                    redirectTo: `${window.location.origin}/auth/callback?next=/checkout`,
-                  },
-                })
-              }
-              className="inline-flex"
-            >
+            <button onClick={handleSignIn} className="inline-flex">
               <PiSignInBold className="text-xl" />
             </button>
           )}

@@ -104,7 +104,7 @@ export default function Hero() {
     <div className="relative">
       <div
         ref={sliderRef}
-        className="keen-slider w-full rounded-lg overflow-hidden relative aspect-[4/1] sm:aspect-[24/9] md:aspect-[32/9] bg-neutral-900"
+        className="keen-slider w-full rounded-lg overflow-hidden relative h-[136px] sm:h-auto sm:aspect-[24/9] md:aspect-[32/9] bg-neutral-900"
       >
         {banners.map((banner, idx) => (
           <div

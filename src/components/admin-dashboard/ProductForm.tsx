@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import Image from "next/image";
-import toast from "react-hot-toast";
-import { Trash2 } from "lucide-react";
-import { uploadImagesToImageKit } from "@/lib/imageKit/uploadImagetoImageKit";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/select';
+import Image from 'next/image';
+import toast from 'react-hot-toast';
+import { Trash2 } from 'lucide-react';
+import { uploadImagesToImageKit } from '@/lib/imageKit/uploadImagetoImageKit';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,20 +26,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import SpecificationEditor from "./SpecificationEditor";
-import VariantEditor from "./VariantEditor";
-import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
+} from '@/components/ui/alert-dialog';
+import SpecificationEditor from './SpecificationEditor';
+import VariantEditor from './VariantEditor';
+import { SpecificationGroup, VariantGroup } from '@/Types/adminComponentTypes';
 
 export type Category = {
   id: string;
   name: string;
 };
 
+export type Subcategory = {
+  id: string;
+  name: string;
+  categoryId: string;
+};
+
 export type ProductData = {
   id?: string;
   name: string;
   categoryId: string;
+  subcategoryId?: string | null;
   price: number;
   crossedPrice: number;
   stock: number;
@@ -52,41 +59,48 @@ export type ProductData = {
 
 export type ProductFormProps = {
   categories: Category[];
-  mode: "add" | "edit";
+  subcategories: Subcategory[];
+  mode: 'add' | 'edit';
   initialData?: ProductData;
 };
 
 export default function ProductForm({
   categories,
+  subcategories,
   mode,
   initialData,
 }: ProductFormProps) {
   const [form, setForm] = useState({
-    name: initialData?.name || "",
-    categoryId: initialData?.categoryId || "",
-    price: initialData?.price || "",
-    crossedPrice: initialData?.crossedPrice || "",
-    stock: initialData?.stock || "",
-    status: initialData?.status || "Draft",
-    description: initialData?.description || "",
+    name: initialData?.name || '',
+    categoryId: initialData?.categoryId || '',
+    subcategoryId: initialData?.subcategoryId || '',
+    price: initialData?.price || '',
+    crossedPrice: initialData?.crossedPrice || '',
+    stock: initialData?.stock || '',
+    status: initialData?.status || 'Draft',
+    description: initialData?.description || '',
     images: initialData?.images || [],
     specs: initialData?.specifications || [
-      { title: "", entries: [{ key: "", value: "" }] },
+      { title: '', entries: [{ key: '', value: '' }] },
     ],
     variants: initialData?.variants || [
-      {
-        name: "",
-        type: "price",
-        types: [{ value: "", price: 0 }],
-      },
+      { name: '', type: 'price', types: [{ value: '', price: 0 }] },
     ],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
-  const [pendingPayload, setPendingPayload] = useState<ProductData | null>(
-    null
-  );
+  const [pendingPayload, setPendingPayload] = useState<ProductData | null>(null);
+  const [filteredSubcategories, setFilteredSubcategories] = useState<Subcategory[]>([]);
+  useEffect(() => {
+    if (form.categoryId) {
+      setFilteredSubcategories(
+        subcategories?.filter((sub) => sub.categoryId === form.categoryId) || []
+      );
+    } else {
+      setFilteredSubcategories([]);
+    }
+  }, [form.categoryId, subcategories]);
 
   const router = useRouter();
 
@@ -113,26 +127,27 @@ export default function ProductForm({
         !form.description ||
         form.images.length === 0
       ) {
-        toast.error("Fill all fields and upload at least one image.");
+        toast.error('Fill all fields and upload at least one image.');
         setIsSubmitting(false);
         return;
       }
 
       const imageUrls: string[] = [];
 
-for (const img of form.images) {
-  if (typeof img === "string") {
-    imageUrls.push(img); // Already a string, OK
-  } else if (img instanceof File) {
-    const uploaded = await uploadImagesToImageKit([img]); // uploaded is [{ url, fileId }]
-    const urls = uploaded.map((u) => u.url); // extract string URLs
-    imageUrls.push(...urls); // ✅ Now pushing strings
-  }
-}
+      for (const img of form.images) {
+        if (typeof img === 'string') {
+          imageUrls.push(img);
+        } else if (img instanceof File) {
+          const uploaded = await uploadImagesToImageKit([img]);
+          const urls = uploaded.map((u) => u.url);
+          imageUrls.push(...urls);
+        }
+      }
 
       const payload = {
         name: form.name,
         categoryId: form.categoryId,
+        subcategoryId: form.subcategoryId || null,
         price: Number(form.price),
         crossedPrice: Number(form.crossedPrice),
         stock: Number(form.stock),
@@ -143,17 +158,15 @@ for (const img of form.images) {
         variants: form.variants,
       };
 
-      const endpoint =
-        mode === "add" ? "/api/product" : `/api/product/${initialData?.id}`;
-      const method = mode === "add" ? "POST" : "PATCH";
+      const endpoint = mode === 'add' ? '/api/product' : `/api/product/${initialData?.id}`;
+      const method = mode === 'add' ? 'POST' : 'PATCH';
 
       const res = await fetch(endpoint, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, force: false }),
       });
 
-      // if dulicate, ask admin to proceed
       if (res.status === 409) {
         setPendingPayload(payload);
         setShowDuplicateWarning(true);
@@ -161,30 +174,33 @@ for (const img of form.images) {
       }
 
       if (!res.ok) {
-        toast.error("Error submitting product");
+        toast.error('Error submitting product');
       } else {
-        toast.success(
-          `Product ${mode === "add" ? "added" : "updated"} successfully`
-        );
-        if (mode === "edit") {
-          router.push("/admin/products");
+        toast.success(`Product ${mode === 'add' ? 'added' : 'updated'} successfully`);
+        if (mode === 'edit') {
+          router.push('/admin/products');
         } else {
           setForm({
-            name: "",
-            categoryId: "",
-            price: "",
-            crossedPrice: "",
-            stock: "",
-            status: "Draft",
-            description: "",
+            name: '',
+            categoryId: '',
+            subcategoryId: '',
+            price: '',
+            crossedPrice: '',
+            stock: '',
+            status: 'Draft',
+            description: '',
             images: [],
-            specs: [],
-            variants: [],
+            specs: [
+              { title: '', entries: [{ key: '', value: '' }] },
+            ],
+            variants: [
+              { name: '', type: 'price', types: [{ value: '', price: 0 }] },
+            ],
           });
         }
       }
     } catch (err) {
-      toast.error("Something went wrong.");
+      toast.error('Something went wrong.');
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -194,10 +210,9 @@ for (const img of form.images) {
   return (
     <div className="max-w-5xl mx-auto py-10">
       <h2 className="text-2xl font-bold mb-6">
-        {mode === "add" ? "Add New Product" : "Edit Product"}
+        {mode === 'add' ? 'Add New Product' : 'Edit Product'}
       </h2>
 
-      {/* FORM UI STARTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <Label>Product Name</Label>
@@ -244,7 +259,9 @@ for (const img of form.images) {
           <Label>Category</Label>
           <Select
             value={form.categoryId}
-            onValueChange={(v) => setForm({ ...form, categoryId: v })}
+            onValueChange={(v) => {
+              setForm({ ...form, categoryId: v, subcategoryId: '' });
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Choose Category" />
@@ -257,9 +274,35 @@ for (const img of form.images) {
               ))}
             </SelectContent>
           </Select>
+
+          {form.categoryId && (
+            <>
+              <Label>Subcategory</Label>
+              <Select
+                value={form.subcategoryId}
+                onValueChange={(v) => setForm({ ...form, subcategoryId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose Subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredSubcategories.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </SelectItem>
+                  ))}
+                  {filteredSubcategories.length === 0 && (
+                    <SelectItem disabled value="none">
+                      No subcategories available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
 
-        {/* Right Column */}
+        {/* Right column */}
         <div className="space-y-4">
           <Label>Description</Label>
           <Textarea
@@ -270,10 +313,10 @@ for (const img of form.images) {
 
           <Label>Images</Label>
           {form.images.map((img, idx) => {
-            let url = "";
+            let url = '';
             if (img instanceof File) {
               url = URL.createObjectURL(img);
-            } else if (typeof img === "string") {
+            } else if (typeof img === 'string') {
               url = img;
             }
             return (
@@ -319,7 +362,7 @@ for (const img of form.images) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setForm({ ...form, images: [...form.images, ""] })}
+              onClick={() => setForm({ ...form, images: [...form.images, ''] })}
             >
               + Add Image
             </Button>
@@ -332,7 +375,6 @@ for (const img of form.images) {
           specifications={form.specs}
           onChange={(specs) => setForm({ ...form, specs })}
         />
-
         <VariantEditor
           variants={form.variants}
           onChange={(variants) => setForm({ ...form, variants })}
@@ -343,38 +385,36 @@ for (const img of form.images) {
       <div className="mt-10 space-x-5">
         <Button onClick={handleSubmit} className="cursor-pointer" disabled={isSubmitting}>
           {isSubmitting
-            ? "Submitting..."
-            : mode === "add"
-            ? "Submit Product"
-            : "Update Product"}
+            ? 'Submitting...'
+            : mode === 'add'
+            ? 'Submit Product'
+            : 'Update Product'}
         </Button>
-        {mode === "edit" && (
+        {mode === 'edit' && (
           <Button
-          className="cursor-pointer"
+            className="cursor-pointer"
             type="button"
             variant="ghost"
-            onClick={() => router.push("/admin/products")}
+            onClick={() => router.push('/admin/products')}
           >
             Cancel
           </Button>
         )}
       </div>
-      <AlertDialog
-        open={showDuplicateWarning}
-        onOpenChange={setShowDuplicateWarning}
-      >
+
+      {/* Duplicate Warning Modal */}
+      <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Duplicate Product Detected</AlertDialogTitle>
             <AlertDialogDescription>
-              A product with the same name and category already exists. Are you
-              sure you want to upload this anyway?
+              A product with the same name and category already exists. Upload anyway?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
-                toast("Product upload cancelled.");
+                toast('Product upload cancelled.');
                 setShowDuplicateWarning(false);
               }}
             >
@@ -385,41 +425,31 @@ for (const img of form.images) {
                 setIsSubmitting(true);
                 setShowDuplicateWarning(false);
                 try {
-                  const res = await fetch("/api/product", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                  const res = await fetch('/api/product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ...pendingPayload, force: true }),
                   });
                   if (!res.ok) {
-                    toast.error("Forced product upload failed.");
+                    toast.error('Forced product upload failed.');
                     return;
                   }
-                  toast.success("Product uploaded anyway!");
+                  toast.success('Product uploaded anyway!');
                   setForm({
-                    name: "",
-                    categoryId: "",
-                    price: "",
-                    crossedPrice: "",
-                    stock: "",
-                    status: "Draft",
-                    description: "",
+                    name: '',
+                    categoryId: '',
+                    subcategoryId: '',
+                    price: '',
+                    crossedPrice: '',
+                    stock: '',
+                    status: 'Draft',
+                    description: '',
                     images: [],
-                    specs: [
-                      {
-                        title: "General",
-                        entries: [{ key: "", value: "" }],
-                      },
-                    ],
-                    variants: [
-                      {
-                        name: "",
-                        type: "price",
-                        types: [{ value: "", price: 0 }],
-                      },
-                    ],
+                    specs: [{ title: '', entries: [{ key: '', value: '' }] }],
+                    variants: [{ name: '', type: 'price', types: [{ value: '', price: 0 }] }],
                   });
                 } catch (err) {
-                  toast.error("Error during forced upload.");
+                  toast.error('Error during forced upload.');
                   console.error(err);
                 } finally {
                   setIsSubmitting(false);

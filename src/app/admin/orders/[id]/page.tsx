@@ -7,6 +7,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import toast from 'react-hot-toast';
@@ -30,16 +41,18 @@ type Order = {
   total: number;
   status: string;
   paymentType: string;
+  paymentStatus: string;
   createdAt: string;
 };
 
-const statusOptions = ['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled'];
+const statusOptions = ['Pending', 'Shipped', 'Delivered', 'Cancelled'];
 
 export default function AdminOrderDetailPage() {
   const { id } = useParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string>('');
+  const [paymentStatus, setPaymentStatus] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -49,6 +62,7 @@ export default function AdminOrderDetailPage() {
         const data = await res.json();
         setOrder(data);
         setStatus(data.status);
+        setPaymentStatus(data.paymentStatus);
       } catch (err) {
         toast.error('Failed to load order.'+err);
       } finally {
@@ -66,7 +80,7 @@ export default function AdminOrderDetailPage() {
       const res = await fetch(`/api/order/${order.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, paymentStatus }),
       });
 
       if (!res.ok) throw new Error('Status update failed');
@@ -76,6 +90,22 @@ export default function AdminOrderDetailPage() {
       toast.error('Failed to update status.'+err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Handler for deleting the order
+  const handleDelete = async () => {
+    if (!order) return;
+    try {
+      const res = await fetch(`/api/order/${order.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      toast.success('Order deleted!');
+      // Optionally redirect or reload
+      window.location.href = '/admin/orders';
+    } catch (err) {
+      toast.error('Failed to delete order.' + err);
     }
   };
 
@@ -107,8 +137,10 @@ export default function AdminOrderDetailPage() {
             <p>Type: {order.paymentType}</p>
             <p>Amount: NPR {order.total}</p>
             <p>Date: {format(new Date(order.createdAt), 'MMM dd, yyyy')}</p>
-            <p>Status: <Badge variant="outline">{order.status}</Badge></p>
+            <p>Order Status: <Badge variant="outline">{order.status}</Badge></p>
+            <p>Payment Status: <Badge variant="outline">{order.paymentStatus}</Badge></p>
             <div className="mt-2">
+              <label className="text-sm font-medium">Order Status</label>
               <Select value={status} onValueChange={(val) => setStatus(val)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Change status" />
@@ -121,6 +153,18 @@ export default function AdminOrderDetailPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <div className="mt-2">
+                <label className="text-sm font-medium">Payment Status</label>
+                <Select value={paymentStatus || "Unpaid"} onValueChange={(val) => setPaymentStatus(val)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Change payment status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Unpaid">Unpaid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
                 onClick={handleStatusUpdate}
                 disabled={saving}
@@ -129,6 +173,30 @@ export default function AdminOrderDetailPage() {
               >
                 {saving ? 'Updating...' : 'Save Status'}
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="mt-2 ml-2">
+                    Delete Order
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Order?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. Are you sure you want to permanently delete this order?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-white hover:bg-red-600"
+                      onClick={handleDelete}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </CardContent>

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createApiClient } from "@/lib/supabaseServer";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest) { 
   try {
     const body = await req.json();
     const { customer, items, total, paymentType } = body;
@@ -14,28 +15,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createApiClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const session = await getServerSession(authOptions);
 
-    if (error || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized or invalid user session" },
-        { status: 401 }
-      );
-    }
+    const userId = session?.user?.id || null;
+    const userEmail = session?.user?.email || "";
+    const userName = session?.user?.name || "Guest User";
 
-    // Auto-create user if not already in the database
-    const userId = user.id;
-    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
-
-    if (!existingUser) {
-      await prisma.user.create({
-        data: {
-          id: userId,
-          email: user.email ?? "",
-          name:user.user_metadata?.name || "Guest User",
-        },
-      });
+    if (userId) {
+      const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+      if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            id: userId,
+            email: userEmail,
+            name: userName,
+          },
+        });
+      }
     }
 
     // Create the order
@@ -47,6 +43,7 @@ export async function POST(req: NextRequest) {
         total,
         paymentType,
         status: "Pending", // Safe enum value
+        paymentStatus: "Unpaid",
       },
     });
 
@@ -84,6 +81,7 @@ export async function GET() {
         total: order.total,
         status: order.status,
         paymentType: order.paymentType,
+        paymentStatus: order.paymentStatus,
         createdAt: order.createdAt,
       };
     });
@@ -94,4 +92,3 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

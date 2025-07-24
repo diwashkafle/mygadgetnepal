@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ProductCardSkeleton from "@/components/admin-dashboard/ProductCardSkeleton";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 type Product = {
   id: string;
@@ -78,6 +79,7 @@ export default function AllProductsPage() {
     <div className="max-w-6xl mx-auto py-10 space-y-6">
       <h2 className="text-2xl font-bold">All Products</h2>
 
+      <div className="flex justify-between">
       <Input
         placeholder="Search products..."
         className="w-full md:w-1/2"
@@ -87,6 +89,13 @@ export default function AllProductsPage() {
           setCurrentPage(1);
         }}
       />
+
+      <Link href={"/admin/add-product"}>
+      <Button className="cursor-pointer">
+        Add product
+      </Button>
+      </Link>
+      </div>
 
       {loading ? (
         <ProductCardSkeleton/>

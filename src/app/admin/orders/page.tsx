@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 type Order = {
   id: string;
+  userId?: string;
   customer: {
     name: string;
     email: string;
@@ -23,6 +24,7 @@ type Order = {
   total: number;
   status: string;
   paymentType: string;
+  paymentStatus: string;
   createdAt: string;
 };
 
@@ -35,6 +37,7 @@ export default function AdminOrdersPage() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterPayment, setFilterPayment] = useState('All');
   const [searchEmail, setSearchEmail] = useState('');
+  const [realUserEmails, setRealUserEmails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -50,6 +53,19 @@ export default function AdminOrdersPage() {
     };
 
     fetchOrders();
+  }, []);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch('/api/user');
+        const users = await res.json();
+        setRealUserEmails(new Set(users.map((u: { email: string }) => u.email)));
+      } catch (err) {
+        console.error('Error fetching users:', err);
+      }
+    };
+    fetchUsers();
   }, []);
 
   const filteredOrders = orders.filter((order) => {
@@ -133,10 +149,12 @@ export default function AdminOrdersPage() {
                 <TableRow>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>User Type</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Payment Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
@@ -146,11 +164,17 @@ export default function AdminOrdersPage() {
                   <TableRow key={order.id}>
                     <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}...</TableCell>
                     <TableCell className="text-sm">{order.customer.email}</TableCell>
+                    <TableCell className="text-sm">
+                      {realUserEmails.has(order.customer.email) ? "Logged In" : "Guest"}
+                    </TableCell>
                     <TableCell className="text-sm">{order.customer.phone}</TableCell>
                     <TableCell className="text-sm">NPR {order.total}</TableCell>
                     <TableCell className="text-sm">{order.paymentType}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{order.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{order.paymentStatus}</Badge>
                     </TableCell>
                     <TableCell className="text-sm">
                       {format(new Date(order.createdAt), 'MMM dd, yyyy')}

@@ -14,13 +14,8 @@ const navItems = [
     href: "/admin",
   },
   {
-    label: "Add Product",
-    icon: <BsBoxes size={20} />,
-    href: "/admin/add-product",
-  },
-  {
     label: "Products",
-    icon: <MdInventory size={20} />,
+    icon: <BsBoxes size={20} />,
     href: "/admin/products",
   },
   {

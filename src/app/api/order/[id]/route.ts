@@ -22,31 +22,27 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { paymentType, status } = await req.json();
+    const { status, paymentStatus, paymentType } = await req.json();
 
-    if (!paymentType && !status) {
+    if (!status && !paymentStatus && !paymentType) {
       return NextResponse.json(
-        { error: "Either paymentType or status must be provided" },
+        { error: "At least one of status, paymentStatus, or paymentType must be provided" },
         { status: 400 }
       );
     }
 
     const dataToUpdate: Prisma.OrderUpdateInput = {};
 
-    if (paymentType) {
-      const normalized = paymentType.toUpperCase();
-      dataToUpdate.paymentType = normalized as PaymentType;
-
-      // Optional: auto-set status based on payment type
-      if (normalized === "COD") {
-        dataToUpdate.status = "Pending";
-      } else {
-        dataToUpdate.status = "Paid";
-      }
-    }
-
     if (status) {
       dataToUpdate.status = status as OrderStatus;
+    }
+
+    if (paymentStatus) {
+      dataToUpdate.paymentStatus = paymentStatus;
+    }
+
+    if (paymentType) {
+      dataToUpdate.paymentType = paymentType as PaymentType;
     }
 
     const updated = await prisma.order.update({
@@ -58,5 +54,30 @@ export async function PATCH(
   } catch (err) {
     console.error("PATCH /api/order/[id] failed:", err);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  }
+}
+
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const existing = await prisma.order.findUnique({
+      where: { id: params.id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    await prisma.order.delete({
+      where: { id: params.id },
+    });
+
+    return NextResponse.json({ message: "Order deleted successfully" });
+  } catch (err) {
+    console.error("DELETE /api/order/[id] failed:", err);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }

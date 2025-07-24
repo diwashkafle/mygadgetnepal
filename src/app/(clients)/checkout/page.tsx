@@ -8,7 +8,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabaseClient";
+import { useSession } from "next-auth/react";
 
 export default function CheckoutPage() {
   const { items, clearCart } = useCartStore();
@@ -30,21 +30,14 @@ export default function CheckoutPage() {
     0
   );
 
+  const { data: session } = useSession();
+
   useEffect(() => {
-    const fetchUser = async () => {
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session?.user?.email) {
-        setForm((prev) => ({ ...prev, email: session.user.email ?? "" }));
-        setEmailLocked(true);
-      }
-    };
-
-    fetchUser();
-  }, []);
+    if (session?.user?.email) {
+      setForm((prev) => ({ ...prev, email: session.user.email ?? "" }));
+      setEmailLocked(true);
+    }
+  }, [session]);
 
   const isValidNepaliPhone = (phone: string): boolean => {
     const phoneRegex = /^(98|97)\d{8}$/;
@@ -93,13 +86,14 @@ export default function CheckoutPage() {
 
       const data = await res.json();
 
+      // Redirect to payment with order ID first
+      router.push(`/payment/${data.orderId}`);
+
+      // Show UI feedback and clear cart after redirect is triggered
       toast.success("Order placed successfully!");
       clearCart();
-
-      // Redirect to payment with order ID
-      router.push(`/payment/${data.orderId}`);
     } catch (err) {
-      console.error(err);
+      console.error(err); 
       toast.dismiss();
       toast.error("Something went wrong!");
     }
@@ -107,14 +101,14 @@ export default function CheckoutPage() {
 
   if (items.length === 0)
     return (
-      <div className="max-w-2xl mx-auto mt-20 text-center">
+      <div className="max-w-2xl min-h-[70vh] mx-auto mt-20 text-center">
         <h2 className="text-2xl font-semibold">Your cart is empty.</h2>
         <Button onClick={() => router.push("/")}>Go to Shop</Button>
       </div>
     );
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
+    <div className="max-w-4xl min-h-[70vh] mx-auto py-12 px-4">
       <h2 className="text-2xl font-bold mb-8">Checkout</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

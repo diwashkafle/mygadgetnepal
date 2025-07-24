@@ -4,8 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cart-store";
-import { useState } from "react";
-import { FaHeart, FaRegHeart } from "react-icons/fa";
 
 type Product = {
   id: string;
@@ -18,25 +16,9 @@ type Product = {
 
 export default function ProductCard({ product }: { product: Product }) {
   const addToCart = useCartStore((state) => state.addToCart);
-  const [isFav, setIsFav] = useState(false); // Temporary favorite toggle
-
-  const toggleFav = () => setIsFav((prev) => !prev);
 
   return (
-    <div className="w-[260px] min-h-[340px] bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col group relative">
-      {/* Favorite icon */}
-      <button
-        onClick={toggleFav}
-        className="absolute top-3 right-3 z-10 p-1 rounded-full bg-white hover:bg-muted transition"
-        title={isFav ? "Remove from Favorite" : "Add to Favorite"}
-      >
-        {isFav ? (
-          <FaHeart className="text-red-500 w-5 h-5" />
-        ) : (
-          <FaRegHeart className="text-gray-400 w-5 h-5" />
-        )}
-      </button>
-
+    <div className="w-[260px] h-[380px]  bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col group relative">
       {/* Image */}
       <Link href={`/products/${product.id}`} className="flex-1 flex flex-col">
         <div className="relative w-full aspect-[4/3] bg-white overflow-hidden">
@@ -51,8 +33,10 @@ export default function ProductCard({ product }: { product: Product }) {
 
         {/* Info */}
         <div className="p-4 flex-1 flex flex-col space-y-2">
-          <h3 className="text-sm font-medium line-clamp-2 h-[2.75rem]">
-            {product.name}
+          <h3 className="text-sm font-medium h-[44px]">
+            {product.name.length > 35
+              ? `${product.name.slice(0, 35)}...`
+              : product.name}
           </h3>
 
           <div className="flex items-center gap-2">

@@ -6,6 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import toast from 'react-hot-toast'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Settings2, Trash } from 'lucide-react'
 
 type Category = {
   id: string
@@ -14,16 +22,34 @@ type Category = {
   createdAt: string
 }
 
+type Subcategory = {
+  id: string
+  name: string
+  categoryId: string
+}
+
 export default function CategoryPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [categories, setCategories] = useState<Category[]>([])
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ name: '', description: '' })
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [newSubName, setNewSubName] = useState<{ [catId: string]: string }>({})
+  const [submittingSub, setSubmittingSub] = useState<{ [catId: string]: boolean }>({})
+  const [editingSubId, setEditingSubId] = useState<string | null>(null)
+  const [editSubName, setEditSubName] = useState<string>('')
+
+  const [showAddSubModal, setShowAddSubModal] = useState(false);
+  const [showEditSubModal, setShowEditSubModal] = useState(false);
+  const [activeCategoryForSub, setActiveCategoryForSub] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories()
+    fetchSubcategories()
   }, [])
 
   const fetchCategories = async () => {
@@ -37,54 +63,61 @@ export default function CategoryPage() {
     }
   }
 
+  const fetchSubcategories = async () => {
+    try {
+      const res = await fetch('/api/subcategory')
+      const data = await res.json()
+      setSubcategories(data)
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load subcategories')
+    }
+  }
+
   const handleCreate = async () => {
     if (!name.trim() || !description.trim()) {
       toast.error('Both name and description are required')
       return
     }
-  
-    const tempId = `temp-${Date.now()}` // temporary ID for UI tracking
+
+    const tempId = `temp-${Date.now()}`
     const newCategory: Category = {
       id: tempId,
       name,
       description,
       createdAt: new Date().toISOString(),
     }
-  
-    // ✅ Optimistically update UI
+
     setCategories((prev) => [...prev, newCategory])
     setName('')
     setDescription('')
+    setShowAddModal(false)
     setLoading(true)
-  
+
     try {
       const res = await fetch('/api/category', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newCategory.name, description: newCategory.description }),
       })
-  
+
       if (!res.ok) throw new Error()
-  
+
       const actualCategory = await res.json()
-  
-      //  Replace temp category with real one
+
       setCategories((prev) =>
         prev.map((cat) => (cat.id === tempId ? actualCategory : cat))
       )
-  
+
       toast.success('Category added')
     } catch (err) {
       console.error(err)
-  
-      //  Remove temp category on error
       setCategories((prev) => prev.filter((cat) => cat.id !== tempId))
       toast.error('Failed to add category')
     } finally {
       setLoading(false)
     }
   }
-  
 
   const handleDelete = async (id: string) => {
     try {
@@ -124,27 +157,100 @@ export default function CategoryPage() {
     }
   }
 
+  const handleAddSubcategory = async (categoryId: string) => {
+    const name = newSubName[categoryId]?.trim()
+    if (!name) {
+      toast.error("Subcategory name is required")
+      return
+    }
+
+    setSubmittingSub((prev) => ({ ...prev, [categoryId]: true }))
+
+    try {
+      const res = await fetch("/api/subcategory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, categoryId }),
+      })
+
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+
+      const created = await res.json()
+      setSubcategories((prev) => [...prev, created])
+      setNewSubName((prev) => ({ ...prev, [categoryId]: "" }))
+      toast.success("Subcategory added")
+    } catch (err) {
+      toast.error("Failed to add subcategory")
+      console.error(err)
+    } finally {
+      setSubmittingSub((prev) => ({ ...prev, [categoryId]: false }))
+    }
+  }
+
+  const handleEditSubcategory = (sub: Subcategory) => {
+    setEditingSubId(sub.id);
+    setEditSubName(sub.name);
+  }
+
+  const handleSaveSubcategoryEdit = async (id: string) => {
+    try {
+      const res = await fetch(`/api/subcategory/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editSubName }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      const updated = await res.json();
+      setSubcategories((prev) => prev.map((sub) => sub.id === id ? updated : sub));
+      setEditingSubId(null);
+      toast.success('Subcategory updated');
+    } catch (err) {
+      toast.error('Failed to update subcategory, Error:'+err);
+    }
+  }
+
+  const handleDeleteSubcategory = async (id: string) => {
+    try {
+      const res = await fetch(`/api/subcategory/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) throw new Error();
+
+      setSubcategories((prev) => prev.filter((sub) => sub.id !== id));
+      toast.success('Subcategory deleted');
+    } catch (err) {
+      toast.error('Failed to delete subcategory, Error:'+err);
+    }
+  }
+
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
     <div className="max-w-4xl mx-auto py-10 space-y-6">
       <h2 className="text-2xl font-bold">Manage Categories</h2>
 
-      {/* Create Category */}
-      <div className="space-y-2">
-        <Label>Category Name</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Laptops" />
-
-        <Label>Description</Label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short category description" />
-
-        <Button className="mt-2" onClick={handleCreate} disabled={loading}>Add Category</Button>
+      {/* Top Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Input
+          className="sm:max-w-xs"
+          placeholder="Search categories..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <Button onClick={() => setShowAddModal(true)}>Add Category</Button>
       </div>
 
       {/* Category List */}
-      <div className="mt-10">
+      <div className="mt-8">
         <h3 className="text-lg font-semibold mb-2">Existing Categories</h3>
-        {categories.length < 1 && <h1 className='text-gray-700 mt-10'>No categories yet!</h1>}
+        {filteredCategories.length < 1 && <p className="text-gray-600 mt-6">No matching categories found.</p>}
         <div className="space-y-4">
-          {categories.map(cat => (
+          {filteredCategories.map((cat) => (
             <div key={cat.id} className="p-4 border rounded space-y-2">
               {editingId === cat.id ? (
                 <>
@@ -164,19 +270,150 @@ export default function CategoryPage() {
                   </div>
                 </>
               ) : (
-                <>
-                  <p className="font-semibold text-lg">{cat.name}</p>
-                  <p className="text-sm text-muted-foreground">{cat.description}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Button className=' cursor-pointer ' variant="outline" onClick={() => handleEdit(cat)}>Edit</Button>
-                    <Button className=' cursor-pointer ' variant="destructive" onClick={() => handleDelete(cat.id)}>Delete</Button>
+                <div className='flex flex-col'>
+                  <div className='flex w-full justify-between '>
+                    <div>
+                      <p className="font-semibold text-lg">{cat.name}</p>
+                      <p className="text-sm text-muted-foreground">{cat.description}</p>
+                      <div className="mt-2 py-4 ml-2 space-y-2">
+                        {subcategories
+                          .filter((s) => s.categoryId === cat.id)
+                          .map((sub) => (
+                            <div key={sub.id} className="flex space-y-2 items-center gap-2 text-sm text-gray-600">
+                              {editingSubId === sub.id && showEditSubModal ? (
+                                <>
+                                  {/* Removed inline edit inputs */}
+                                </>
+                              ) : (
+                                <div className='flex justify-between space-x-10 w-full'>
+                                  <div>– {sub.name}</div>
+                                  <div className='space-x-2'>
+                                  <Button
+                                  className='border-[1px] border-gray-200'
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      handleEditSubcategory(sub)
+                                      setShowEditSubModal(true)
+                                    }}
+                                  >
+                                    <Settings2/>
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleDeleteSubcategory(sub.id)}><Trash/></Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => handleEdit(cat)}><Settings2/></Button>
+                      <Button variant="destructive" onClick={() => handleDelete(cat.id)}><Trash/></Button>
+                    </div>
                   </div>
-                </>
+
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setActiveCategoryForSub(cat.id)
+                        setShowAddSubModal(true)
+                      }}
+                    >
+                      Add Subcategory
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           ))}
         </div>
       </div>
+
+      {/* Add Category Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Category</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Label>Category Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+
+            <Label>Description</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button onClick={handleCreate} disabled={loading}>Add Category</Button>
+            <Button variant="destructive" onClick={() => setShowAddModal(false)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Subcategory Modal */}
+      <Dialog open={showAddSubModal} onOpenChange={setShowAddSubModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Subcategory</DialogTitle>
+          </DialogHeader>
+          <Input
+            className="mt-4"
+            placeholder="Subcategory name"
+            value={newSubName[activeCategoryForSub || ''] || ''}
+            onChange={(e) =>
+              setNewSubName((prev) => ({
+                ...prev,
+                [activeCategoryForSub || '']: e.target.value,
+              }))
+            }
+          />
+          <DialogFooter className="mt-4">
+            <Button
+              onClick={() => {
+                if (activeCategoryForSub) handleAddSubcategory(activeCategoryForSub);
+                setShowAddSubModal(false);
+              }}
+              disabled={!activeCategoryForSub || submittingSub[activeCategoryForSub]}
+            >
+              Add
+            </Button>
+            <Button variant="ghost" onClick={() => setShowAddSubModal(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Subcategory Modal */}
+      <Dialog open={showEditSubModal} onOpenChange={setShowEditSubModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Subcategory</DialogTitle>
+          </DialogHeader>
+          <Input
+            className="mt-4"
+            placeholder="New subcategory name"
+            value={editSubName}
+            onChange={(e) => setEditSubName(e.target.value)}
+          />
+          <DialogFooter className="mt-4">
+            <Button
+              onClick={() => {
+                if (editingSubId) handleSaveSubcategoryEdit(editingSubId);
+                setShowEditSubModal(false);
+              }}
+            >
+              Save
+            </Button>
+            <Button variant="ghost" onClick={() => setShowEditSubModal(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

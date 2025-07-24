@@ -5,8 +5,9 @@ import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
 
 export default function Footer() {
   return (
-    <footer className="bg-neutral-100 border-t mt-10 text-sm text-neutral-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 md:grid-cols-5 gap-8">
+    <footer className=" border-t mt-10 text-sm text-neutral-700 w-full">
+      <div className="w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 md:grid-cols-5 gap-8">
         {/* Company Info */}
         <div className="md:col-span-1">
           <Link href="/" className="inline-block mb-4">
@@ -69,9 +70,10 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t py-4 text-center text-xs text-neutral-500">
-        © {new Date().getFullYear()} MyGadgetNepal. All rights reserved.
+        {/* Bottom bar */}
+        <div className="border-t py-4 text-center text-xs text-neutral-500">
+          © {new Date().getFullYear()} MyGadgetNepal. All rights reserved.
+        </div>
       </div>
     </footer>
   );

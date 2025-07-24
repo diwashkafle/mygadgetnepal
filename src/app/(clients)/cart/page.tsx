@@ -5,10 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Trash2, Minus, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabaseClient";
-import type { Session } from "@supabase/supabase-js";
+import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function CartPage() {
@@ -19,22 +18,9 @@ export default function CartPage() {
     clearCart,
   } = useCartStore();
 
-  const supabase = createClient();
   const router = useRouter();
-
-  const [session, setSession] = useState<Session | null>(null);
+  const { data: session } = useSession();
   const [showDialog, setShowDialog] = useState(false);
-
-  useEffect(() => {
-    const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-    };
-
-    getSession();
-  }, []);
 
   const increment = (productId: string) => {
     const item = items.find((i) => i.productId === productId);
@@ -68,7 +54,7 @@ export default function CartPage() {
 
   if (items.length === 0)
     return (
-      <div className="max-w-3xl mx-auto mt-20 text-center">
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center">
         <h2 className="text-2xl font-semibold">Your cart is empty</h2>
         <Link href="/">
           <Button className="mt-4">Continue Shopping</Button>
@@ -77,7 +63,7 @@ export default function CartPage() {
     );
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
+    <div className="max-w-4xl min-h-[70vh] mx-auto py-10 px-4">
       <h2 className="text-2xl font-bold mb-6">Shopping Cart</h2>
 
       <div className="space-y-6">
@@ -154,11 +140,7 @@ export default function CartPage() {
             <Button variant="secondary" onClick={() => router.push("/checkout")}>
               Continue as Guest
             </Button>
-            <Button onClick={() => supabase.auth.signInWithOAuth({ 
-              provider: "google" ,
-              options: {
-                redirectTo: `${window.location.origin}/auth/callback?next=/checkout`,
-              },})}>
+            <Button onClick={() => signIn("google", { callbackUrl: "/checkout" })}>
               Login to Continue
             </Button>
           </div>
