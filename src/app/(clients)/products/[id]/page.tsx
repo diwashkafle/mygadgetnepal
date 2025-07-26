@@ -16,7 +16,9 @@ import { notFound } from "next/navigation";
 import ProductDetails from "@/components/client-components/ProductDetails";
 import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
+export default async function ProductDetailPage(props: { params: { id: string } }) {
+  const { params } = props;
+
   const rawProduct = await prisma.product.findUnique({
     where: { id: params.id },
   });
