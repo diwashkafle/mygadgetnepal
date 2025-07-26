@@ -11,14 +11,17 @@ interface ProductWithVariantsAndSpecs {
   variants: VariantGroup[];
   specifications: SpecificationGroup[];
 }
+
+interface PageProps {
+  params: { id: string };
+}
+
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import ProductDetails from "@/components/client-components/ProductDetails";
 import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
-export default async function ProductDetailPage(props: { params: { id: string } }) {
-  const { params } = props;
-
+export default async function ProductDetailPage({ params }: PageProps) {
   const rawProduct = await prisma.product.findUnique({
     where: { id: params.id },
   });
