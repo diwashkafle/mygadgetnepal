@@ -14,7 +14,13 @@ import { notFound } from "next/navigation";
 import ProductDetails from "@/components/client-components/ProductDetails";
 import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
+type PageProps = {
+  params: {
+    id: string;
+  };
+};
+
+export default async function ProductDetailPage({ params }: PageProps) {
   const rawProduct = await prisma.product.findUnique({
     where: { id: params.id },
   });
