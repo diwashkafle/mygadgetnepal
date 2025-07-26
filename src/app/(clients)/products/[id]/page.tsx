@@ -1,3 +1,5 @@
+export const dynamicParams = true;
+
 interface ProductWithVariantsAndSpecs {
   id: string;
   name: string;
@@ -14,21 +16,15 @@ import { notFound } from "next/navigation";
 import ProductDetails from "@/components/client-components/ProductDetails";
 import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
-type PageProps = {
-  params: {
-    id: string;
-  };
-};
-
-export default async function ProductDetailPage({ params }: PageProps) {
+export default async function ProductDetailPage({ params }: { params: { id: string } }) {
   const rawProduct = await prisma.product.findUnique({
     where: { id: params.id },
   });
 
   if (!rawProduct) return notFound();
 
-  const variants = rawProduct.variants as unknown as VariantGroup[];
-  const specifications = rawProduct.specifications as unknown as SpecificationGroup[];
+  const variants = rawProduct.variants as VariantGroup[];
+  const specifications = rawProduct.specifications as SpecificationGroup[];
 
   const product: ProductWithVariantsAndSpecs = {
     id: rawProduct.id,
@@ -44,19 +40,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 ">
-      <ProductDetails
-        product={{
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          crossedPrice: product.crossedPrice,
-          description: product.description,
-          images: product.images,
-          stock: product.stock,
-          variants,
-          specifications,
-        }}
-      />
+      <ProductDetails product={product} />
     </div>
   );
 }
