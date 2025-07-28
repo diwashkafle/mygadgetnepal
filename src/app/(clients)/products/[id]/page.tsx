@@ -20,13 +20,10 @@ import { notFound } from "next/navigation";
 import ProductDetails from "@/components/client-components/ProductDetails";
 import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
-export default async function ProductDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  console.log("Param type", typeof params);
-  const id = (await Promise.resolve(params)).id;
+export default async function ProductDetailPage(
+  props: { params: Promise<{ id: string }> }
+) {
+  const { id } = await props.params;
   const rawProduct = await prisma.product.findUnique({
     where: { id },
   });
