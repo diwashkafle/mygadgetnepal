@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const productId = params.id;
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const productId = id;
 
   try {
     const product = await prisma.product.findUnique({
@@ -30,10 +31,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 }
 
 
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { category: true },
     });
 
@@ -49,8 +51,9 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 }
 
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const {
       name,
@@ -66,7 +69,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     } = body;
 
     const updated = await prisma.product.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name,
         price,

@@ -7,8 +7,11 @@ interface Subcategory {
   categoryId: string;
 }
 
-export default async function EditProductPage({ params }: { params: { id: string } }) {
-  const productId = params.id;
+export default async function EditProductPage(
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const productId = id;
 
   const [productRes, categoryRes, subcategoryRes] = await Promise.all([
     fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/product/${productId}`, { cache: "no-store" }),

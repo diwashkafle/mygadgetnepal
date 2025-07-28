@@ -1,3 +1,5 @@
+type ProductParams = Promise<{ id: string }>;
+
 export const dynamicParams = true;
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,9 +23,9 @@ import ProductDetails from "@/components/client-components/ProductDetails";
 import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
 export default async function ProductDetailPage(
-  props: { params: Promise<{ id: string }> }
+  { params }: { params: ProductParams }
 ) {
-  const { id } = await props.params;
+  const { id } = await params;
   const rawProduct = await prisma.product.findUnique({
     where: { id },
   });

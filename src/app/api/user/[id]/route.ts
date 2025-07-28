@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id || session.user.id !== params.id) {
+  if (!session?.user?.id || session.user.id !== id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -17,7 +18,7 @@ export async function PATCH(
 
   try {
     await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name,
         phone,

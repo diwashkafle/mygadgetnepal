@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function ThankYouPage({ params }: Props) {
+  const { id } = await params;
   const order = await prisma.order.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!order) return notFound();

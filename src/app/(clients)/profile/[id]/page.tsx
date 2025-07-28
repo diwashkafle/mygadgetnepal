@@ -6,13 +6,13 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 
-interface ProfilePageProps {
-  params: {
-    id: string;
-  };
-}
+type ProfilePageProps = Promise<{ id: string }>;
 
-export default async function ProfilePage({ params }: ProfilePageProps) {
+export default async function ProfilePage(
+  { params }: { params: ProfilePageProps }
+) {
+  const { id } = await params;
+  
   // 🔐 Get user session (server-side)
   const session = await getServerSession(authOptions);
 
@@ -22,7 +22,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   // 🔐 Prevent accessing another user's profile
-  if (params.id !== session.user.id) {
+  if (id !== session.user.id) {
     notFound();
   }
 

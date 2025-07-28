@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import ProductCard from "@/components/client-components/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product } from "@prisma/client"; // if you're using Prisma Client types
@@ -20,7 +20,7 @@ interface ProductWithReviews extends Product {
   reviews?: { rating: number }[];
 }
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("query") || "";
   const [products, setProducts] = useState<ProductWithReviews[]>([]);
@@ -294,5 +294,13 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }

@@ -7,9 +7,10 @@ const imagekit = new ImageKit({
   urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT!,
 });
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const result = await imagekit.deleteFile(params.id);
+    const { id } = await params;
+    const result = await imagekit.deleteFile(id);
     return NextResponse.json({ success: true, result });
   } catch (error) {
     console.error("Image delete failed:", error);

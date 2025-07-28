@@ -3,11 +3,12 @@ import { NextResponse, NextRequest } from "next/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const banner = await prisma.banner.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!banner) {
@@ -23,13 +24,14 @@ export async function GET(
 // PUT /api/banner/:id – Update banner
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const data = await req.json();
 
     const updatedBanner = await prisma.banner.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title: data.title,
         image: data.image,
@@ -48,11 +50,12 @@ export async function PATCH(
 // DELETE /api/banner/:id – Delete banner
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.banner.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: "Banner deleted" });

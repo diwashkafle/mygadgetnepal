@@ -4,10 +4,11 @@ import { Prisma, OrderStatus, PaymentType } from "@prisma/client";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const order = await prisma.order.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!order) {
@@ -19,9 +20,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { status, paymentStatus, paymentType } = await req.json();
 
     if (!status && !paymentStatus && !paymentType) {
@@ -46,7 +48,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.order.update({
-      where: { id: params.id },
+      where: { id },
       data: dataToUpdate,
     });
 
@@ -60,11 +62,12 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const existing = await prisma.order.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existing) {
@@ -72,7 +75,7 @@ export async function DELETE(
     }
 
     await prisma.order.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: "Order deleted successfully" });
