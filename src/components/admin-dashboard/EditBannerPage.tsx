@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { uploadToFirebase } from "@/lib/firebase/uploadToFirebase";
+import { uploadImagesToImageKit } from "@/lib/imageKit/uploadImagetoImageKit";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -62,7 +62,11 @@ export default function EditBannerPage() {
       let imageUrl = form.image;
 
       if (form.image instanceof File) {
-        imageUrl = await uploadToFirebase(form.image);
+        const uploaded = await uploadImagesToImageKit([form.image]);
+        imageUrl = uploaded[0]?.url;
+        if (!imageUrl) {
+          throw new Error("Image upload failed");
+        }
       }
 
       const payload = {

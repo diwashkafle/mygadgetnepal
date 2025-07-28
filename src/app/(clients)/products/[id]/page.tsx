@@ -1,4 +1,6 @@
 export const dynamicParams = true;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface ProductWithVariantsAndSpecs {
   id: string;
@@ -12,24 +14,27 @@ interface ProductWithVariantsAndSpecs {
   specifications: SpecificationGroup[];
 }
 
-interface PageProps {
-  params: { id: string };
-}
 
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import ProductDetails from "@/components/client-components/ProductDetails";
 import { SpecificationGroup, VariantGroup } from "@/Types/adminComponentTypes";
 
-export default async function ProductDetailPage({ params }: PageProps) {
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  console.log("Param type", typeof params);
+  const id = (await Promise.resolve(params)).id;
   const rawProduct = await prisma.product.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!rawProduct) return notFound();
 
-  const variants = rawProduct.variants as VariantGroup[];
-  const specifications = rawProduct.specifications as SpecificationGroup[];
+  const variants = rawProduct.variants as unknown as VariantGroup[];
+  const specifications = rawProduct.specifications as unknown as SpecificationGroup[];
 
   const product: ProductWithVariantsAndSpecs = {
     id: rawProduct.id,
@@ -48,4 +53,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
       <ProductDetails product={product} />
     </div>
   );
+}
+
+export async function generateStaticParams() {
+  return [];
 }
