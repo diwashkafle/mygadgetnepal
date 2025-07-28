@@ -10,7 +10,7 @@ export default async function AdminDashboardPage() {
 
   const totalOrders = orders.length;
   const totalRevenue = orders
-    .filter((o) => o.status === "Paid")
+    .filter((o) => o.paymentStatus === "Paid")
     .reduce((sum, o) => sum + (o.total || 0), 0);
   const totalUsers = users.length;
 
