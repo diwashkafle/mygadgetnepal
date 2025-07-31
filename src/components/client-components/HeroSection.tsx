@@ -69,7 +69,7 @@ export default function Hero() {
           id: 'fallback',
           title: 'Nepal’s Finest Tech Gadget',
           subtitle: 'Explore premium gadgets at unbeatable prices',
-          image: '/fallbackBanner.svg',
+          image: '/fallbackbanner.svg',
           ctaText: 'Shop Now',
           ctaLink: '/products',
         };
