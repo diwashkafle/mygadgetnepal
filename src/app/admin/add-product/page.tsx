@@ -7,9 +7,14 @@ interface Subcategory {
 }
 
 export default async function AddProductPage() {
+
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
+
   const [catRes, subRes] = await Promise.all([
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/category`, { cache: "no-store" }),
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/subcategory`, { cache: "no-store" }),
+    fetch(`${baseUrl}/api/category`, { cache: "no-store" }),
+    fetch(`${baseUrl}/api/subcategory`, { cache: "no-store" }),
   ]);
 
   if (!catRes.ok || !subRes.ok) {
